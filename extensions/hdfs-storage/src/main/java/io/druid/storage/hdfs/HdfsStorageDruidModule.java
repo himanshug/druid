@@ -24,6 +24,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.inject.Binder;
 import com.google.inject.Inject;
 import com.google.inject.multibindings.MapBinder;
+import com.metamx.common.logger.Logger;
 import io.druid.data.SearchableVersionedDataFinder;
 import io.druid.guice.Binders;
 import io.druid.guice.JsonConfigProvider;
@@ -42,8 +43,33 @@ import java.util.Properties;
  */
 public class HdfsStorageDruidModule implements DruidModule
 {
+  private static final Logger LOG = new Logger(HdfsStorageDruidModule.class);
+
   public static final String SCHEME = "hdfs";
+  private static final Configuration HADOOP_CONF;
+
   private Properties props = null;
+
+  static {
+    LOG.info("Setting up Hdfs Storage Module with classloader used for loading the class");
+
+    HADOOP_CONF = new Configuration();
+    HADOOP_CONF.setClassLoader(HdfsStorageDruidModule.class.getClassLoader());
+
+    // Ensure that FileSystem class level initialization happens with correct CL
+    // See https://github.com/druid-io/druid/issues/1714
+    ClassLoader currCtxCl = Thread.currentThread().getContextClassLoader();
+    try {
+      Thread.currentThread().setContextClassLoader(HdfsStorageDruidModule.class.getClassLoader());
+      FileSystem.get(HADOOP_CONF);
+    }
+    catch (IOException ex) {
+      throw Throwables.propagate(ex);
+    }
+    finally {
+      Thread.currentThread().setContextClassLoader(currCtxCl);
+    }
+  }
 
   @Inject
   public void setProperties(Properties props)
@@ -90,32 +116,15 @@ public class HdfsStorageDruidModule implements DruidModule
     Binders.dataSegmentPusherBinder(binder).addBinding(SCHEME).to(HdfsDataSegmentPusher.class).in(LazySingleton.class);
     Binders.dataSegmentKillerBinder(binder).addBinding(SCHEME).to(HdfsDataSegmentKiller.class).in(LazySingleton.class);
 
-    final Configuration conf = new Configuration();
-
-    // Set explicit CL. Otherwise it'll try to use thread context CL, which may not have all of our dependencies.
-    conf.setClassLoader(getClass().getClassLoader());
-
-    // Ensure that FileSystem class level initialization happens with correct CL
-    // See https://github.com/druid-io/druid/issues/1714
-    ClassLoader currCtxCl = Thread.currentThread().getContextClassLoader();
-    try {
-      Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
-      FileSystem.get(conf);
-    } catch(IOException ex) {
-      throw Throwables.propagate(ex);
-    } finally {
-      Thread.currentThread().setContextClassLoader(currCtxCl);
-    }
-
     if (props != null) {
       for (String propName : System.getProperties().stringPropertyNames()) {
         if (propName.startsWith("hadoop.")) {
-          conf.set(propName.substring("hadoop.".length()), System.getProperty(propName));
+          HADOOP_CONF.set(propName.substring("hadoop.".length()), System.getProperty(propName));
         }
       }
     }
 
-    binder.bind(Configuration.class).toInstance(conf);
+    binder.bind(Configuration.class).toInstance(HADOOP_CONF);
     JsonConfigProvider.bind(binder, "druid.storage", HdfsDataSegmentPusherConfig.class);
 
     Binders.taskLogsBinder(binder).addBinding("hdfs").to(HdfsTaskLogs.class);
