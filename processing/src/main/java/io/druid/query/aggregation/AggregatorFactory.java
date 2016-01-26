@@ -41,6 +41,8 @@ public abstract class AggregatorFactory
 {
   private static final Logger log = new Logger(AggregatorFactory.class);
 
+  public static final byte STRING_SEPARATOR = (byte) 0xFF;
+
   public abstract Aggregator factorize(ColumnSelectorFactory metricFactory);
 
   public abstract BufferAggregator factorizeBuffered(ColumnSelectorFactory metricFactory);

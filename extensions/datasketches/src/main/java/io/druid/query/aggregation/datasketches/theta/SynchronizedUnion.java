@@ -102,6 +102,12 @@ public class SynchronizedUnion implements Union
   }
 
   @Override
+  public Union rebuild()
+  {
+    return new SynchronizedUnion(delegate.rebuild());
+  }
+
+  @Override
   public synchronized void reset()
   {
     delegate.reset();
