@@ -69,9 +69,8 @@ import io.druid.segment.IndexSpec;
 import io.druid.segment.QueryableIndex;
 import io.druid.segment.QueryableIndexSegment;
 import io.druid.segment.Segment;
-import io.druid.segment.TestHelper;
+import io.druid.segment.column.ColumnConfig;
 import io.druid.segment.incremental.IncrementalIndex;
-import io.druid.segment.incremental.IndexSizeExceededException;
 import io.druid.segment.incremental.OnheapIncrementalIndex;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.LineIterator;
@@ -165,10 +164,22 @@ public class AggregationTestHelper
         pool
     );
 
+    IndexIO indexIO = new IndexIO(
+        mapper,
+        new ColumnConfig()
+        {
+          @Override
+          public int columnCacheSizeBytes()
+          {
+            return 0;
+          }
+        }
+    );
+
     return new AggregationTestHelper(
         mapper,
-        TestHelper.getTestIndexMerger(),
-        TestHelper.getTestIndexIO(),
+        new IndexMerger(mapper, indexIO),
+        indexIO,
         toolchest,
         factory,
         tempFolder,
@@ -197,10 +208,22 @@ public class AggregationTestHelper
         QueryRunnerTestHelper.NOOP_QUERYWATCHER
     );
 
+    IndexIO indexIO = new IndexIO(
+        mapper,
+        new ColumnConfig()
+        {
+          @Override
+          public int columnCacheSizeBytes()
+          {
+            return 0;
+          }
+        }
+    );
+
     return new AggregationTestHelper(
         mapper,
-        TestHelper.getTestIndexMerger(),
-        TestHelper.getTestIndexIO(),
+        new IndexMerger(mapper, indexIO),
+        indexIO,
         toolchest,
         factory,
         tempFolder,
