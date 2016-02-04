@@ -94,7 +94,6 @@
     * [Overview](../development/experimental.html)
     * [Geographic Queries](../development/geo.html)
     * [Approximate Histograms and Quantiles](../development/approximate-histograms.html)
-    * [Datasketches](../development/datasketches-aggregators.html)
     * [Router](../development/router.html)
     * [Kafka Simple Consumer Firehose](../development/kafka-simple-consumer-firehose.html)
 

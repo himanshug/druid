@@ -219,3 +219,5 @@ This makes it possible to compute the results of a filtered and an unfiltered ag
   "aggregator" : <aggregation>
 }
 ```
+
+### Druid aggregators based on [datasketches](http://datasketches.github.io/) library are available via optional extension [druid-datasketches](https://github.com/druid-io/druid/tree/master/extensions/datasketches) .
