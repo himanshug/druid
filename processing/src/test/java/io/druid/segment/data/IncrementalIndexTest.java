@@ -60,7 +60,7 @@ import io.druid.segment.Segment;
 import io.druid.segment.incremental.IncrementalIndex;
 import io.druid.segment.incremental.IncrementalIndexSchema;
 import io.druid.segment.incremental.IndexSizeExceededException;
-import io.druid.segment.incremental.OffheapIncrementalIndex;
+import io.druid.segment.incremental.OnDiskIncrementalIndex;
 import io.druid.segment.incremental.OnheapIncrementalIndex;
 import org.joda.time.Interval;
 import org.junit.Assert;
@@ -113,23 +113,45 @@ public class IncrementalIndexTest
   {
     return Arrays.asList(
         new Object[][]{
+//            {
+//                new IndexCreator()
+//                {
+//                  @Override
+//                  public IncrementalIndex createIndex(AggregatorFactory[] factories)
+//                  {
+//                    return IncrementalIndexTest.createIndex(factories);
+//                  }
+//                }
+//            },
+//            {
+//                new IndexCreator()
+//                {
+//                  @Override
+//                  public IncrementalIndex createIndex(AggregatorFactory[] factories)
+//                  {
+//                    return new OffheapIncrementalIndex(
+//                        0L, QueryGranularity.NONE, factories, 1000000,
+//                        new StupidPool<ByteBuffer>(
+//                            new Supplier<ByteBuffer>()
+//                            {
+//                              @Override
+//                              public ByteBuffer get()
+//                              {
+//                                return ByteBuffer.allocate(256 * 1024);
+//                              }
+//                            }
+//                        )
+//                    );
+//                  }
+//                }
+//            }
             {
                 new IndexCreator()
                 {
                   @Override
                   public IncrementalIndex createIndex(AggregatorFactory[] factories)
                   {
-                    return IncrementalIndexTest.createIndex(factories);
-                  }
-                }
-            },
-            {
-                new IndexCreator()
-                {
-                  @Override
-                  public IncrementalIndex createIndex(AggregatorFactory[] factories)
-                  {
-                    return new OffheapIncrementalIndex(
+                    return new OnDiskIncrementalIndex(
                         0L, QueryGranularity.NONE, factories, 1000000,
                         new StupidPool<ByteBuffer>(
                             new Supplier<ByteBuffer>()
