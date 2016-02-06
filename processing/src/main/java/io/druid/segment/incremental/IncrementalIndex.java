@@ -62,6 +62,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.GuardedBy;
 import java.io.Closeable;
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -272,7 +273,7 @@ public abstract class IncrementalIndex<AggregatorType> implements Iterable<Row>,
   private final Map<String, MetricDesc> metricDescs;
   private final Map<String, DimensionDesc> dimensionDescs;
   private final Map<String, ColumnCapabilitiesImpl> columnCapabilities;
-  private final List<DimDim> dimValues;
+  protected final List<DimDim> dimValues;
 
   private final AtomicInteger numEntries = new AtomicInteger();
 
@@ -997,7 +998,7 @@ public abstract class IncrementalIndex<AggregatorType> implements Iterable<Row>,
   }
 
   @VisibleForTesting
-  static final class TimeAndDimsComp implements Comparator<TimeAndDims>
+  static final class TimeAndDimsComp implements Comparator<TimeAndDims>, Serializable
   {
     private final List<DimDim> dimValues;
 

@@ -31,14 +31,22 @@ import io.druid.granularity.QueryGranularity;
 import io.druid.query.aggregation.AggregatorFactory;
 import io.druid.query.aggregation.BufferAggregator;
 import io.druid.segment.ColumnSelectorFactory;
+import org.mapdb.BTreeKeySerializer;
+import org.mapdb.DB;
+import org.mapdb.DBMaker;
+import org.mapdb.Serializer;
 
+import java.io.DataInput;
+import java.io.DataOutput;
 import java.io.IOException;
+import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentNavigableMap;
-import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -50,6 +58,7 @@ public class OnDiskIncrementalIndex extends IncrementalIndex<BufferAggregator>
   private final List<ResourceHolder<ByteBuffer>> aggBuffers = new ArrayList<>();
   private final List<int[]> indexAndOffsets = new ArrayList<>();
 
+  private final DB factsDb;
   private final ConcurrentNavigableMap<TimeAndDims, Integer> facts;
 
   private final AtomicInteger indexIncrement = new AtomicInteger(0);
@@ -76,7 +85,25 @@ public class OnDiskIncrementalIndex extends IncrementalIndex<BufferAggregator>
     super(incrementalIndexSchema, deserializeComplexMetrics);
     this.maxRowCount = maxRowCount;
     this.bufferPool = bufferPool;
-    this.facts = new ConcurrentSkipListMap<>(dimsComparator());
+
+    //See http://www.mapdb.org/apidocs/org/mapdb/DBMaker.html
+    final DBMaker dbMaker = DBMaker.newTempFileDB()
+                                   .deleteFilesAfterClose()
+        .commitFileSyncDisable()
+        .cacheSize(128)
+//      .sizeLimit(Integer.MAX_VALUE)
+        .transactionDisable()
+        .asyncWriteEnable()
+        .mmapFileEnableIfSupported();
+
+    this.factsDb = dbMaker.make();
+    final TimeAndDimsSerializer timeAndDimsSerializer = new TimeAndDimsSerializer(this);
+    this.facts = factsDb.createTreeMap("__facts" + UUID.randomUUID())
+                        .keySerializer(timeAndDimsSerializer)
+                        .comparator(timeAndDimsSerializer.getComparator())
+                        .valueSerializer(Serializer.INTEGER)
+                        .make();
+
 
     //check that stupid pool gives buffers that can hold at least one row's aggregators
     ResourceHolder<ByteBuffer> bb = bufferPool.take();
@@ -321,15 +348,30 @@ public class OnDiskIncrementalIndex extends IncrementalIndex<BufferAggregator>
   @Override
   public void close()
   {
+    RuntimeException ex = null;
+
+    //note that it is important to first clear mapDB stuff as it depends on dimLookups
+    //in the comparator which should be available.
+    try {
+      facts.clear();
+      factsDb.close();
+    } catch (Exception e) {
+      if (ex == null) {
+        ex = Throwables.propagate(e);
+      } else {
+        ex.addSuppressed(e);
+      }
+    }
+
     super.close();
-    facts.clear();
+
     indexAndOffsets.clear();
 
     if (selectors != null) {
       selectors.clear();
     }
 
-    RuntimeException ex = null;
+
     for (ResourceHolder<ByteBuffer> buffHolder : aggBuffers) {
       try {
         buffHolder.close();
@@ -342,8 +384,110 @@ public class OnDiskIncrementalIndex extends IncrementalIndex<BufferAggregator>
       }
     }
     aggBuffers.clear();
+
     if (ex != null) {
       throw ex;
+    }
+  }
+
+  private static class TimeAndDimsSerializer extends BTreeKeySerializer<TimeAndDims> implements Serializable
+  {
+    private static final int[] EMPTY_INT_ARRAY = new int[0];
+
+    private final Comparator<TimeAndDims> comparator;
+
+    TimeAndDimsSerializer(final OnDiskIncrementalIndex tHis)
+    {
+      this.comparator = new OnDiskTimeAndDimsComparator(
+          new Supplier<List<DimDim>>()
+          {
+            @Override
+            public List<DimDim> get()
+            {
+              return tHis.dimValues;
+            }
+          }
+      );
+    }
+
+    //TODO: write VSizeIndexed based serializer that will reduce the key size.
+    //also do the null check etc.
+    @Override
+    public void serialize(DataOutput out, int start, int end, Object[] keys) throws IOException
+    {
+      for (int i = start; i < end; i++) {
+        TimeAndDims timeAndDim = (TimeAndDims) keys[i];
+        out.writeLong(timeAndDim.getTimestamp());
+        out.writeInt(timeAndDim.getDims().length);
+        for (int[] dims : timeAndDim.getDims()) {
+          if (dims == null) {
+            writeArr(EMPTY_INT_ARRAY, out);
+          } else {
+            writeArr(dims, out);
+          }
+        }
+      }
+    }
+
+    @Override
+    public Object[] deserialize(DataInput in, int start, int end, int size) throws IOException
+    {
+      Object[] ret = new Object[size];
+      for (int i = start; i < end; i++) {
+        final long timeStamp = in.readLong();
+        final int[][] dims = new int[in.readInt()][]; //TODO: optimize for length 0
+
+        for (int j = 0; j < dims.length; j++) {
+          dims[j] = readArr(in);
+        }
+        ret[i] = new TimeAndDims(timeStamp, dims);
+      }
+
+      return ret;
+    }
+
+    @Override
+    public Comparator<TimeAndDims> getComparator()
+    {
+      return comparator;
+    }
+
+    private void writeArr(int[] value, DataOutput out) throws IOException
+    {
+      out.writeInt(value.length);
+      for (int v : value) {
+        out.writeInt(v);
+      }
+    }
+
+    private int[] readArr(DataInput in) throws IOException
+    {
+      int len = in.readInt();
+      if (len == 0) {
+        return EMPTY_INT_ARRAY;
+      } else {
+        int[] result = new int[len];
+        for (int i = 0; i < len; i++) {
+          result[i] = in.readInt();
+        }
+        return result;
+      }
+    }
+  }
+
+  private static class OnDiskTimeAndDimsComparator implements Comparator<TimeAndDims>, Serializable
+  {
+    private transient Supplier<List<DimDim>> dimDimsSupplier;
+
+    OnDiskTimeAndDimsComparator(Supplier<List<DimDim>> dimDimsSupplier)
+    {
+      this.dimDimsSupplier = dimDimsSupplier;
+    }
+
+    @Override
+    public int compare(TimeAndDims o1, TimeAndDims o2)
+    {
+      return new TimeAndDimsComp(dimDimsSupplier.get()).compare(o1, o2);
     }
   }
 }
