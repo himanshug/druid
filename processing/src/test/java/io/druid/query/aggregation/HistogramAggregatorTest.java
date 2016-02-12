@@ -94,7 +94,7 @@ public class HistogramAggregatorTest
     Assert.assertArrayEquals(new long[]{1,3,2,3,1,1}, ((Histogram)agg.get()).bins);
   }
 
-  private void aggregateBuffer(TestFloatColumnSelector selector, BufferAggregator agg, ByteBuffer buf, int position)
+  private void aggregateBuffer(TestFloatColumnSelector selector, FixedSizeBufferAggregator agg, ByteBuffer buf, int position)
   {
     agg.aggregate(buf, position);
     selector.increment();

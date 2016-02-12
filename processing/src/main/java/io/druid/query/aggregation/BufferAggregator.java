@@ -19,8 +19,6 @@
 
 package io.druid.query.aggregation;
 
-import java.nio.ByteBuffer;
-
 /**
  * A BufferAggregator is an object that can aggregate metrics into a ByteBuffer.  Its aggregation-related methods
  * (namely, aggregate(...) and get(...)) only take the ByteBuffer and position because it is assumed that the Aggregator
@@ -42,9 +40,9 @@ public interface BufferAggregator
    * in the corresponding {@link AggregatorFactory}
    *
    * @param buf byte buffer to initialize
-   * @param position offset within the byte buffer for initialization
+   * @param position offsets within the buffer for initialization
    */
-  void init(ByteBuffer buf, int position);
+  void init(ResizableBuffer buff, int[] position);
 
   /**
    * Aggregates metric values into the given aggregate byte representation
@@ -55,9 +53,9 @@ public interface BufferAggregator
    * <b>Implementations must not change the position, limit or mark of the given buffer</b>
    *
    * @param buf byte buffer storing the byte array representation of the aggregate
-   * @param position offset within the byte buffer at which the current aggregate value is stored
+   * @param position offsets within the buffer at which the current aggregate value is stored
    */
-  void aggregate(ByteBuffer buf, int position);
+  void aggregate(ResizableBuffer buff, int[] position);
 
   /**
    * Returns the intermediate object representation of the given aggregate.
@@ -67,10 +65,10 @@ public interface BufferAggregator
    * <b>Implementations must not change the position, limit or mark of the given buffer</b>
    *
    * @param buf byte buffer storing the byte array representation of the aggregate
-   * @param position offset within the byte buffer at which the aggregate value is stored
+   * @param position offsets within the buffer at which the aggregate value is stored
    * @return the Object representation of the aggregate
    */
-  Object get(ByteBuffer buf, int position);
+  Object get(ResizableBuffer buff, int[] position);
 
   /**
    * Returns the float representation of the given aggregate byte array
@@ -84,10 +82,10 @@ public interface BufferAggregator
    * If unimplemented, throwing an {@link UnsupportedOperationException} is common and recommended.
    *
    * @param buf byte buffer storing the byte array representation of the aggregate
-   * @param position offset within the byte buffer at which the aggregate value is stored
+   * @param position offsets within the buffer at which the aggregate value is stored
    * @return the float representation of the aggregate
    */
-  float getFloat(ByteBuffer buf, int position);
+  float getFloat(ResizableBuffer buff, int[] position);
 
   /**
    * Returns the long representation of the given aggregate byte array
@@ -101,10 +99,10 @@ public interface BufferAggregator
    * If unimplemented, throwing an {@link UnsupportedOperationException} is common and recommended.
    *
    * @param buf byte buffer storing the byte array representation of the aggregate
-   * @param position offset within the byte buffer at which the aggregate value is stored
+   * @param position offsets within the buffer at which the aggregate value is stored
    * @return the long representation of the aggregate
    */
-  long getLong(ByteBuffer buf, int position);
+  long getLong(ResizableBuffer buff, int[] position);
 
   /**
    * Release any resources used by the aggregator

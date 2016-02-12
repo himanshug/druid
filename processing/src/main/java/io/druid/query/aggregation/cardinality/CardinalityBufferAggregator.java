@@ -19,14 +19,14 @@
 
 package io.druid.query.aggregation.cardinality;
 
-import io.druid.query.aggregation.BufferAggregator;
+import io.druid.query.aggregation.FixedSizeBufferAggregator;
 import io.druid.query.aggregation.hyperloglog.HyperLogLogCollector;
 import io.druid.segment.DimensionSelector;
 
 import java.nio.ByteBuffer;
 import java.util.List;
 
-public class CardinalityBufferAggregator implements BufferAggregator
+public class CardinalityBufferAggregator extends FixedSizeBufferAggregator
 {
   private final List<DimensionSelector> selectorList;
   private final boolean byRow;

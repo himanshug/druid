@@ -21,8 +21,6 @@ package io.druid.query.aggregation;
 
 import io.druid.query.filter.ValueMatcher;
 
-import java.nio.ByteBuffer;
-
 public class FilteredBufferAggregator implements BufferAggregator
 {
   private final ValueMatcher matcher;
@@ -35,13 +33,13 @@ public class FilteredBufferAggregator implements BufferAggregator
   }
 
   @Override
-  public void init(ByteBuffer buf, int position)
+  public void init(ResizableBuffer buf, int[] position)
   {
     delegate.init(buf, position);
   }
 
   @Override
-  public void aggregate(ByteBuffer buf, int position)
+  public void aggregate(ResizableBuffer buf, int[] position)
   {
     if (matcher.matches()) {
       delegate.aggregate(buf, position);
@@ -49,19 +47,19 @@ public class FilteredBufferAggregator implements BufferAggregator
   }
 
   @Override
-  public Object get(ByteBuffer buf, int position)
+  public Object get(ResizableBuffer buf, int[] position)
   {
     return delegate.get(buf, position);
   }
 
   @Override
-  public long getLong(ByteBuffer buf, int position)
+  public long getLong(ResizableBuffer buf, int[] position)
   {
     return delegate.getLong(buf, position);
   }
 
   @Override
-  public float getFloat(ByteBuffer buf, int position)
+  public float getFloat(ResizableBuffer buf, int[] position)
   {
     return delegate.getFloat(buf, position);
   }

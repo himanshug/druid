@@ -54,7 +54,7 @@ public class JavaScriptAggregatorTest
 
   private void aggregateBuffer(TestFloatColumnSelector selector1,
                                TestFloatColumnSelector selector2,
-                               BufferAggregator agg,
+                               FixedSizeBufferAggregator agg,
                                ByteBuffer buf, int position)
   {
     agg.aggregate(buf, position);

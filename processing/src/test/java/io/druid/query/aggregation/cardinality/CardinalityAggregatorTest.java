@@ -29,7 +29,7 @@ import com.google.common.collect.Maps;
 import io.druid.jackson.DefaultObjectMapper;
 import io.druid.query.aggregation.Aggregator;
 import io.druid.query.aggregation.AggregatorFactory;
-import io.druid.query.aggregation.BufferAggregator;
+import io.druid.query.aggregation.FixedSizeBufferAggregator;
 import io.druid.segment.DimensionSelector;
 import io.druid.segment.data.IndexedInts;
 import org.junit.Assert;
@@ -220,7 +220,7 @@ public class CardinalityAggregatorTest
 
   private static void bufferAggregate(
       List<DimensionSelector> selectorList,
-      BufferAggregator agg,
+      FixedSizeBufferAggregator agg,
       ByteBuffer buf,
       int pos
   )

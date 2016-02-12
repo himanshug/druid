@@ -123,6 +123,11 @@ public abstract class AggregatorFactory
    */
   public abstract int getMaxIntermediateSize();
 
+  public int getInitSize()
+  {
+    return getMaxIntermediateSize();
+  }
+
   /**
    * Returns the starting value for a corresponding aggregator. For example, 0 for sums, - Infinity for max, an empty mogrifier
    *

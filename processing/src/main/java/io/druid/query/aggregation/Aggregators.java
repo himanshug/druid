@@ -75,7 +75,7 @@ public class Aggregators
 
   public static BufferAggregator noopBufferAggregator()
   {
-    return new BufferAggregator()
+    return new FixedSizeBufferAggregator()
     {
       @Override
       public void init(ByteBuffer buf, int position)

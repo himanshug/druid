@@ -19,7 +19,7 @@
 
 package io.druid.query.aggregation.histogram;
 
-import io.druid.query.aggregation.BufferAggregator;
+import io.druid.query.aggregation.FixedSizeBufferAggregator;
 import io.druid.query.aggregation.TestFloatColumnSelector;
 import org.junit.Assert;
 import org.junit.Test;
@@ -28,7 +28,7 @@ import java.nio.ByteBuffer;
 
 public class ApproximateHistogramAggregatorTest
 {
-  private void aggregateBuffer(TestFloatColumnSelector selector, BufferAggregator agg, ByteBuffer buf, int position)
+  private void aggregateBuffer(TestFloatColumnSelector selector, FixedSizeBufferAggregator agg, ByteBuffer buf, int position)
   {
     agg.aggregate(buf, position);
     selector.increment();

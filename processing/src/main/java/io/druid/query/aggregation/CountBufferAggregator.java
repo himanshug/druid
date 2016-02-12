@@ -23,7 +23,7 @@ import java.nio.ByteBuffer;
 
 /**
  */
-public class CountBufferAggregator implements BufferAggregator
+public class CountBufferAggregator extends FixedSizeBufferAggregator
 {
 
   @Override

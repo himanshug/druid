@@ -19,14 +19,14 @@
 
 package io.druid.query.aggregation.hyperloglog;
 
-import io.druid.query.aggregation.BufferAggregator;
+import io.druid.query.aggregation.FixedSizeBufferAggregator;
 import io.druid.segment.ObjectColumnSelector;
 
 import java.nio.ByteBuffer;
 
 /**
  */
-public class HyperUniquesBufferAggregator implements BufferAggregator
+public class HyperUniquesBufferAggregator extends FixedSizeBufferAggregator
 {
   private static final byte[] EMPTY_BYTES = HyperLogLogCollector.makeEmptyVersionedByteArray();
   private final ObjectColumnSelector selector;

@@ -24,6 +24,7 @@ import com.metamx.common.guava.CloseQuietly;
 import io.druid.collections.ResourceHolder;
 import io.druid.collections.StupidPool;
 import io.druid.query.aggregation.BufferAggregator;
+import io.druid.query.aggregation.ResizableBuffer;
 import io.druid.segment.Capabilities;
 import io.druid.segment.Cursor;
 import io.druid.segment.DimensionSelector;
@@ -90,11 +91,14 @@ public class PooledTopNAlgorithm
 
     final int numBytesToWorkWith = resultsBuf.remaining();
     final int[] aggregatorSizes = new int[query.getAggregatorSpecs().size()];
+    final int[] aggregatorOffsets = new int[query.getAggregatorSpecs().size()];
     int numBytesPerRecord = 0;
 
-    for (int i = 0; i < query.getAggregatorSpecs().size(); ++i) {
+    for (int i = 0, offset = 0; i < query.getAggregatorSpecs().size(); ++i) {
       aggregatorSizes[i] = query.getAggregatorSpecs().get(i).getMaxIntermediateSize();
+      aggregatorOffsets[i] = offset;
       numBytesPerRecord += aggregatorSizes[i];
+      offset += aggregatorSizes[i];
     }
 
     final int numValuesPerPass = numBytesToWorkWith / numBytesPerRecord;
@@ -108,6 +112,7 @@ public class PooledTopNAlgorithm
                            .withArrayProvider(arrayProvider)
                            .withNumBytesPerRecord(numBytesPerRecord)
                            .withNumValuesPerPass(numValuesPerPass)
+                           .withAggregatorOffsets(aggregatorOffsets)
                            .withAggregatorSizes(aggregatorSizes)
                            .build();
   }
@@ -186,17 +191,12 @@ public class PooledTopNAlgorithm
       final int numProcessed
   )
   {
-    final ByteBuffer resultsBuf = params.getResultsBuf();
+    final ResizableBuffer resultsBuf = params.getResizableResultsBuf();
     final int numBytesPerRecord = params.getNumBytesPerRecord();
+    final int[] aggregatorOffsets = params.getAggregatorOffsets();
     final int[] aggregatorSizes = params.getAggregatorSizes();
     final Cursor cursor = params.getCursor();
     final DimensionSelector dimSelector = params.getDimSelector();
-
-    final int[] aggregatorOffsets = new int[aggregatorSizes.length];
-    for (int j = 0, offset = 0; j < aggregatorSizes.length; ++j) {
-      aggregatorOffsets[j] = offset;
-      offset += aggregatorSizes[j];
-    }
 
     final int aggSize = theAggregators.length;
     final int aggExtra = aggSize % AGG_UNROLL_COUNT;
@@ -216,10 +216,10 @@ public class PooledTopNAlgorithm
               resultsBuf,
               numBytesPerRecord,
               aggregatorOffsets,
+              aggregatorSizes,
               aggSize,
               aggExtra,
-              dimValues.get(6),
-              currentPosition
+              dimValues.get(6)
           );
         case 6:
           aggregateDimValue(
@@ -229,10 +229,10 @@ public class PooledTopNAlgorithm
               resultsBuf,
               numBytesPerRecord,
               aggregatorOffsets,
+              aggregatorSizes,
               aggSize,
               aggExtra,
-              dimValues.get(5),
-              currentPosition
+              dimValues.get(5)
           );
         case 5:
           aggregateDimValue(
@@ -242,10 +242,10 @@ public class PooledTopNAlgorithm
               resultsBuf,
               numBytesPerRecord,
               aggregatorOffsets,
+              aggregatorSizes,
               aggSize,
               aggExtra,
-              dimValues.get(4),
-              currentPosition
+              dimValues.get(4)
           );
         case 4:
           aggregateDimValue(
@@ -255,10 +255,10 @@ public class PooledTopNAlgorithm
               resultsBuf,
               numBytesPerRecord,
               aggregatorOffsets,
+              aggregatorSizes,
               aggSize,
               aggExtra,
-              dimValues.get(3),
-              currentPosition
+              dimValues.get(3)
           );
         case 3:
           aggregateDimValue(
@@ -268,10 +268,10 @@ public class PooledTopNAlgorithm
               resultsBuf,
               numBytesPerRecord,
               aggregatorOffsets,
+              aggregatorSizes,
               aggSize,
               aggExtra,
-              dimValues.get(2),
-              currentPosition
+              dimValues.get(2)
           );
         case 2:
           aggregateDimValue(
@@ -281,10 +281,10 @@ public class PooledTopNAlgorithm
               resultsBuf,
               numBytesPerRecord,
               aggregatorOffsets,
+              aggregatorSizes,
               aggSize,
               aggExtra,
-              dimValues.get(1),
-              currentPosition
+              dimValues.get(1)
           );
         case 1:
           aggregateDimValue(
@@ -294,10 +294,10 @@ public class PooledTopNAlgorithm
               resultsBuf,
               numBytesPerRecord,
               aggregatorOffsets,
+              aggregatorSizes,
               aggSize,
               aggExtra,
-              dimValues.get(0),
-              currentPosition
+              dimValues.get(0)
           );
       }
       for (int i = dimExtra; i < dimSize; i += AGG_UNROLL_COUNT) {
@@ -308,10 +308,10 @@ public class PooledTopNAlgorithm
             resultsBuf,
             numBytesPerRecord,
             aggregatorOffsets,
+            aggregatorSizes,
             aggSize,
             aggExtra,
-            dimValues.get(i),
-            currentPosition
+            dimValues.get(i)
         );
         aggregateDimValue(
             positions,
@@ -320,10 +320,10 @@ public class PooledTopNAlgorithm
             resultsBuf,
             numBytesPerRecord,
             aggregatorOffsets,
+            aggregatorSizes,
             aggSize,
             aggExtra,
-            dimValues.get(i + 1),
-            currentPosition
+            dimValues.get(i + 1)
         );
         aggregateDimValue(
             positions,
@@ -332,10 +332,10 @@ public class PooledTopNAlgorithm
             resultsBuf,
             numBytesPerRecord,
             aggregatorOffsets,
+            aggregatorSizes,
             aggSize,
             aggExtra,
-            dimValues.get(i + 2),
-            currentPosition
+            dimValues.get(i + 2)
         );
         aggregateDimValue(
             positions,
@@ -344,10 +344,10 @@ public class PooledTopNAlgorithm
             resultsBuf,
             numBytesPerRecord,
             aggregatorOffsets,
+            aggregatorSizes,
             aggSize,
             aggExtra,
-            dimValues.get(i + 3),
-            currentPosition
+            dimValues.get(i + 3)
         );
         aggregateDimValue(
             positions,
@@ -356,10 +356,10 @@ public class PooledTopNAlgorithm
             resultsBuf,
             numBytesPerRecord,
             aggregatorOffsets,
+            aggregatorSizes,
             aggSize,
             aggExtra,
-            dimValues.get(i + 4),
-            currentPosition
+            dimValues.get(i + 4)
         );
         aggregateDimValue(
             positions,
@@ -368,10 +368,10 @@ public class PooledTopNAlgorithm
             resultsBuf,
             numBytesPerRecord,
             aggregatorOffsets,
+            aggregatorSizes,
             aggSize,
             aggExtra,
-            dimValues.get(i + 5),
-            currentPosition
+            dimValues.get(i + 5)
         );
         aggregateDimValue(
             positions,
@@ -380,10 +380,10 @@ public class PooledTopNAlgorithm
             resultsBuf,
             numBytesPerRecord,
             aggregatorOffsets,
+            aggregatorSizes,
             aggSize,
             aggExtra,
-            dimValues.get(i + 6),
-            currentPosition
+            dimValues.get(i + 6)
         );
         aggregateDimValue(
             positions,
@@ -392,10 +392,10 @@ public class PooledTopNAlgorithm
             resultsBuf,
             numBytesPerRecord,
             aggregatorOffsets,
+            aggregatorSizes,
             aggSize,
             aggExtra,
-            dimValues.get(i + 7),
-            currentPosition
+            dimValues.get(i + 7)
         );
       }
       cursor.advance();
@@ -406,52 +406,78 @@ public class PooledTopNAlgorithm
       final int[] positions,
       final BufferAggregator[] theAggregators,
       final int numProcessed,
-      final ByteBuffer resultsBuf,
+      final ResizableBuffer resizableResultsBuffer,
       final int numBytesPerRecord,
       final int[] aggregatorOffsets,
+      final int[] aggregatorMaxSizes,
       final int aggSize,
       final int aggExtra,
-      final int dimIndex,
-      final AtomicInteger currentPosition
+      final int dimIndex
   )
   {
     if (SKIP_POSITION_VALUE == positions[dimIndex]) {
       return;
     }
     if (INIT_POSITION_VALUE == positions[dimIndex]) {
-      positions[dimIndex] = currentPosition.getAndIncrement() * numBytesPerRecord;
-      final int pos = positions[dimIndex];
       for (int j = 0; j < aggSize; ++j) {
-        theAggregators[j].init(resultsBuf, pos + aggregatorOffsets[j]);
+        int[] pos = resizableResultsBuffer.allocate(aggregatorMaxSizes[j]);
+        theAggregators[j].init(resizableResultsBuffer, pos);
+
+        if (j == 0) {
+          positions[dimIndex] = pos[1];
+        }
       }
     }
-    final int position = positions[dimIndex];
+    final int offset = positions[dimIndex];
+    final int[] pos = new int[]{0, 0};
 
     switch(aggExtra) {
       case 7:
-        theAggregators[6].aggregate(resultsBuf, position + aggregatorOffsets[6]);
+        pos[1] = offset + aggregatorOffsets[6];
+        theAggregators[6].aggregate(resizableResultsBuffer, pos);
       case 6:
-        theAggregators[5].aggregate(resultsBuf, position + aggregatorOffsets[5]);
+        pos[1] = offset + aggregatorOffsets[5];
+        theAggregators[5].aggregate(resizableResultsBuffer, pos);
       case 5:
-        theAggregators[4].aggregate(resultsBuf, position + aggregatorOffsets[4]);
+        pos[1] = offset + aggregatorOffsets[4];
+        theAggregators[4].aggregate(resizableResultsBuffer, pos);
       case 4:
-        theAggregators[3].aggregate(resultsBuf, position + aggregatorOffsets[3]);
+        pos[1] = offset + aggregatorOffsets[3];
+        theAggregators[3].aggregate(resizableResultsBuffer, pos);
       case 3:
-        theAggregators[2].aggregate(resultsBuf, position + aggregatorOffsets[2]);
+        pos[1] = offset + aggregatorOffsets[2];
+        theAggregators[2].aggregate(resizableResultsBuffer, pos);
       case 2:
-        theAggregators[1].aggregate(resultsBuf, position + aggregatorOffsets[1]);
+        pos[1] = offset + aggregatorOffsets[1];
+        theAggregators[1].aggregate(resizableResultsBuffer, pos);
       case 1:
-        theAggregators[0].aggregate(resultsBuf, position + aggregatorOffsets[0]);
+        pos[1] = offset + aggregatorOffsets[0];
+        theAggregators[0].aggregate(resizableResultsBuffer, pos);
     }
     for (int j = aggExtra; j < aggSize; j += AGG_UNROLL_COUNT) {
-      theAggregators[j].aggregate(resultsBuf, position + aggregatorOffsets[j]);
-      theAggregators[j+1].aggregate(resultsBuf, position + aggregatorOffsets[j+1]);
-      theAggregators[j+2].aggregate(resultsBuf, position + aggregatorOffsets[j+2]);
-      theAggregators[j+3].aggregate(resultsBuf, position + aggregatorOffsets[j+3]);
-      theAggregators[j+4].aggregate(resultsBuf, position + aggregatorOffsets[j+4]);
-      theAggregators[j+5].aggregate(resultsBuf, position + aggregatorOffsets[j+5]);
-      theAggregators[j+6].aggregate(resultsBuf, position + aggregatorOffsets[j+6]);
-      theAggregators[j+7].aggregate(resultsBuf, position + aggregatorOffsets[j+7]);
+      pos[1] = offset + aggregatorOffsets[j];
+      theAggregators[j].aggregate(resizableResultsBuffer, pos);
+
+      pos[1] = offset + aggregatorOffsets[j+1];
+      theAggregators[j+1].aggregate(resizableResultsBuffer, pos);
+
+      pos[1] = offset + aggregatorOffsets[j+2];
+      theAggregators[j+2].aggregate(resizableResultsBuffer, pos);
+
+      pos[1] = offset + aggregatorOffsets[j+3];
+      theAggregators[j+3].aggregate(resizableResultsBuffer, pos);
+
+      pos[1] = offset + aggregatorOffsets[j+4];
+      theAggregators[j+4].aggregate(resizableResultsBuffer, pos);
+
+      pos[1] = offset + aggregatorOffsets[j+5];
+      theAggregators[j+5].aggregate(resizableResultsBuffer, pos);
+
+      pos[1] = offset + aggregatorOffsets[j+6];
+      theAggregators[j+6].aggregate(resizableResultsBuffer, pos);
+
+      pos[1] = offset + aggregatorOffsets[j+7];
+      theAggregators[j+7].aggregate(resizableResultsBuffer, pos);
     }
   }
 
@@ -463,17 +489,18 @@ public class PooledTopNAlgorithm
       TopNResultBuilder resultBuilder
   )
   {
-    final ByteBuffer resultsBuf = params.getResultsBuf();
-    final int[] aggregatorSizes = params.getAggregatorSizes();
+    final ResizableBuffer resultsBuf = params.getResizableResultsBuf();
+    final int[] aggregatorOffsets = params.getAggregatorOffsets();
     final DimensionSelector dimSelector = params.getDimSelector();
 
+    final int[] pos = new int[]{0, 0};
     for (int i = 0; i < positions.length; i++) {
-      int position = positions[i];
-      if (position >= 0) {
+      if (positions[i] >= 0) {
         Object[] vals = new Object[theAggregators.length];
+
         for (int j = 0; j < theAggregators.length; j++) {
-          vals[j] = theAggregators[j].get(resultsBuf, position);
-          position += aggregatorSizes[j];
+          pos[1] = positions[i] + aggregatorOffsets[j];
+          vals[j] = theAggregators[j].get(resultsBuf, pos);
         }
 
         resultBuilder.addEntry(
@@ -483,6 +510,8 @@ public class PooledTopNAlgorithm
         );
       }
     }
+
+    resultsBuf.reset();
   }
 
   @Override
@@ -510,6 +539,8 @@ public class PooledTopNAlgorithm
   {
     private final ResourceHolder<ByteBuffer> resultsBufHolder;
     private final ByteBuffer resultsBuf;
+    private final ResizableBuffer resizableResultsBuf;
+    private final int[] aggregatorOffsets;
     private final int[] aggregatorSizes;
     private final int numBytesPerRecord;
     private final TopNMetricSpecBuilder<int[]> arrayProvider;
@@ -520,6 +551,7 @@ public class PooledTopNAlgorithm
         int cardinality,
         ResourceHolder<ByteBuffer> resultsBufHolder,
         ByteBuffer resultsBuf,
+        int[] aggregatorOffsets,
         int[] aggregatorSizes,
         int numBytesPerRecord,
         int numValuesPerPass,
@@ -530,6 +562,8 @@ public class PooledTopNAlgorithm
 
       this.resultsBufHolder = resultsBufHolder;
       this.resultsBuf = resultsBuf;
+      this.resizableResultsBuf = new ResizableBuffer(resultsBuf);
+      this.aggregatorOffsets = aggregatorOffsets;
       this.aggregatorSizes = aggregatorSizes;
       this.numBytesPerRecord = numBytesPerRecord;
       this.arrayProvider = arrayProvider;
@@ -550,9 +584,19 @@ public class PooledTopNAlgorithm
       return resultsBuf;
     }
 
+    public ResizableBuffer getResizableResultsBuf()
+    {
+      return resizableResultsBuf;
+    }
+
     public int[] getAggregatorSizes()
     {
       return aggregatorSizes;
+    }
+
+    public int[] getAggregatorOffsets()
+    {
+      return aggregatorOffsets;
     }
 
     public int getNumBytesPerRecord()
@@ -572,6 +616,7 @@ public class PooledTopNAlgorithm
       private int cardinality;
       private ResourceHolder<ByteBuffer> resultsBufHolder;
       private ByteBuffer resultsBuf;
+      private int[] aggregatorOffsets;
       private int[] aggregatorSizes;
       private int numBytesPerRecord;
       private int numValuesPerPass;
@@ -620,6 +665,12 @@ public class PooledTopNAlgorithm
         return this;
       }
 
+      public Builder withAggregatorOffsets(int[] aggregatorOffsets)
+      {
+        this.aggregatorOffsets = aggregatorOffsets;
+        return this;
+      }
+
       public Builder withAggregatorSizes(int[] aggregatorSizes)
       {
         this.aggregatorSizes = aggregatorSizes;
@@ -652,6 +703,7 @@ public class PooledTopNAlgorithm
             cardinality,
             resultsBufHolder,
             resultsBuf,
+            aggregatorOffsets,
             aggregatorSizes,
             numBytesPerRecord,
             numValuesPerPass,

@@ -43,6 +43,7 @@ import io.druid.guice.annotations.Global;
 import io.druid.query.aggregation.AggregatorFactory;
 import io.druid.query.aggregation.BufferAggregator;
 import io.druid.query.aggregation.PostAggregator;
+import io.druid.query.aggregation.ResizableBuffer;
 import io.druid.query.dimension.DimensionSpec;
 import io.druid.segment.Cursor;
 import io.druid.segment.DimensionSelector;
@@ -143,23 +144,29 @@ public class GroupByQueryEngine
 
   private static class RowUpdater
   {
-    private final ByteBuffer metricValues;
+    private final ResizableBuffer resizableBuffer;
     private final BufferAggregator[] aggregators;
-    private final PositionMaintainer positionMaintainer;
+    private final int[] aggregatorInitSizes;
+    private final int aggregatorInitSizesTotal;
+    private final int aggregatorMaxAdditionalSpaceOnResizeTotal;
 
     private final Map<ByteBuffer, Integer> positions = Maps.newTreeMap();
     // GroupBy queries tend to do a lot of reads from this. We co-store a hash map to make those reads go faster.
     private final Map<ByteBuffer, Integer> positionsHash = Maps.newHashMap();
 
     public RowUpdater(
-        ByteBuffer metricValues,
         BufferAggregator[] aggregators,
-        PositionMaintainer positionMaintainer
+        ResizableBuffer resizableBuffer,
+        int[] aggregatorInitSizes,
+        int aggregatorInitSizesTotal,
+        int aggregatorMaxAdditionalSpaceOnResizeTotal
     )
     {
-      this.metricValues = metricValues;
+      this.resizableBuffer = resizableBuffer;
       this.aggregators = aggregators;
-      this.positionMaintainer = positionMaintainer;
+      this.aggregatorInitSizes = aggregatorInitSizes;
+      this.aggregatorInitSizesTotal = aggregatorInitSizesTotal;
+      this.aggregatorMaxAdditionalSpaceOnResizeTotal = aggregatorMaxAdditionalSpaceOnResizeTotal;
     }
 
     public int getNumRows()
@@ -204,83 +211,46 @@ public class GroupByQueryEngine
       } else {
         key.clear();
         Integer position = positionsHash.get(key);
-        int[] increments = positionMaintainer.getIncrements();
-        int thePosition;
+        ByteBuffer keyCopy = null;
 
         if (position == null) {
-          ByteBuffer keyCopy = ByteBuffer.allocate(key.limit());
+          keyCopy = ByteBuffer.allocate(key.limit());
           keyCopy.put(key.asReadOnlyBuffer());
           keyCopy.clear();
 
-          position = positionMaintainer.getNext();
-          if (position == null) {
+          if (resizableBuffer.remainingCapacityInCurrentBuffer() < aggregatorInitSizesTotal) {
             return Lists.newArrayList(keyCopy);
           }
 
-          positions.put(keyCopy, position);
-          positionsHash.put(keyCopy, position);
-          thePosition = position;
           for (int i = 0; i < aggregators.length; ++i) {
-            aggregators[i].init(metricValues, thePosition);
-            thePosition += increments[i];
+            int[] pos = resizableBuffer.allocate(aggregatorInitSizes[i]);
+            aggregators[i].init(resizableBuffer, pos);
+
+            if (i == 0) {
+              positions.put(keyCopy, pos[1]);
+              positionsHash.put(keyCopy, pos[1]);
+            }
           }
+
+          position = positionsHash.get(keyCopy);
         }
 
-        thePosition = position;
-        for (int i = 0; i < aggregators.length; ++i) {
-          aggregators[i].aggregate(metricValues, thePosition);
-          thePosition += increments[i];
+        int[] thePosition = new int[]{0, position};
+        if (resizableBuffer.remainingCapacityInCurrentBuffer() >= aggregatorMaxAdditionalSpaceOnResizeTotal) {
+          for (int i = 0; i < aggregators.length; ++i) {
+            aggregators[i].aggregate(resizableBuffer, thePosition);
+            thePosition[1] += aggregatorInitSizes[i];
+          }
+          return null;
+        } else {
+          if (keyCopy == null) {
+            keyCopy = ByteBuffer.allocate(key.limit());
+            keyCopy.put(key.asReadOnlyBuffer());
+            keyCopy.clear();
+          }
+          return Lists.newArrayList(keyCopy);
         }
-        return null;
       }
-    }
-  }
-
-  private static class PositionMaintainer
-  {
-    private final int[] increments;
-    private final int increment;
-    private final int max;
-
-    private long nextVal;
-
-    public PositionMaintainer(
-        int start,
-        int[] increments,
-        int max
-    )
-    {
-      this.nextVal = (long) start;
-      this.increments = increments;
-
-      int theIncrement = 0;
-      for (int i = 0; i < increments.length; i++) {
-        theIncrement += increments[i];
-      }
-      increment = theIncrement;
-
-      this.max = max - increment; // Make sure there is enough room for one more increment
-    }
-
-    public Integer getNext()
-    {
-      if (nextVal > max) {
-        return null;
-      } else {
-        int retVal = (int) nextVal;
-        nextVal += increment;
-        return retVal;
-      }
-    }
-
-    public int getIncrement()
-    {
-      return increment;
-    }
-
-    public int[] getIncrements()
-    {
-      return increments;
     }
   }
 
@@ -289,6 +259,7 @@ public class GroupByQueryEngine
     private final GroupByQuery query;
     private final Cursor cursor;
     private final ByteBuffer metricsBuffer;
+
     private final GroupByQueryConfig config;
 
     private final List<DimensionSpec> dimensionSpecs;
@@ -297,7 +268,10 @@ public class GroupByQueryEngine
     private final List<AggregatorFactory> aggregatorSpecs;
     private final BufferAggregator[] aggregators;
     private final String[] metricNames;
-    private final int[] sizesRequired;
+    private final int[] aggregatorInitSizes;
+    private final int aggregatorInitSizesTotal;
+    private final int aggregatorMaxAdditionalSpaceOnResizeTotal;
+    private final int aggregatorMaxSizesTotal;
 
     private List<ByteBuffer> unprocessedKeys;
     private Iterator<Row> delegate;
@@ -307,6 +281,8 @@ public class GroupByQueryEngine
       this.query = query;
       this.cursor = cursor;
       this.metricsBuffer = metricsBuffer;
+
+
       this.config = config;
 
       unprocessedKeys = null;
@@ -314,7 +290,6 @@ public class GroupByQueryEngine
       dimensionSpecs = query.getDimensions();
       dimensions = Lists.newArrayListWithExpectedSize(dimensionSpecs.size());
       dimNames = Lists.newArrayListWithExpectedSize(dimensionSpecs.size());
-
       for (int i = 0; i < dimensionSpecs.size(); ++i) {
         final DimensionSpec dimSpec = dimensionSpecs.get(i);
         final DimensionSelector selector = cursor.makeDimensionSelector(dimSpec);
@@ -327,13 +302,26 @@ public class GroupByQueryEngine
       aggregatorSpecs = query.getAggregatorSpecs();
       aggregators = new BufferAggregator[aggregatorSpecs.size()];
       metricNames = new String[aggregatorSpecs.size()];
-      sizesRequired = new int[aggregatorSpecs.size()];
+      aggregatorInitSizes = new int[aggregatorSpecs.size()];
+      int aggregatorInitSizesTotal = 0;
+      int aggregatorMaxSizesTotal = 0;
+      int aggregatorMaxAdditionalSpaceOnResizeTotal = 0;
       for (int i = 0; i < aggregatorSpecs.size(); ++i) {
         AggregatorFactory aggregatorSpec = aggregatorSpecs.get(i);
         aggregators[i] = aggregatorSpec.factorizeBuffered(cursor);
         metricNames[i] = aggregatorSpec.getName();
-        sizesRequired[i] = aggregatorSpec.getMaxIntermediateSize();
+        aggregatorInitSizes[i] = aggregatorSpec.getInitSize();
+        aggregatorInitSizesTotal += aggregatorSpec.getInitSize();
+        aggregatorMaxSizesTotal += aggregatorSpec.getMaxIntermediateSize();
+
+        if(aggregatorSpec.getMaxIntermediateSize() > aggregatorSpec.getInitSize()) {
+          aggregatorMaxAdditionalSpaceOnResizeTotal += aggregatorSpec.getMaxIntermediateSize();
+        }
       }
+
+      this.aggregatorInitSizesTotal = aggregatorInitSizesTotal;
+      this.aggregatorMaxSizesTotal = aggregatorMaxSizesTotal;
+      this.aggregatorMaxAdditionalSpaceOnResizeTotal = aggregatorMaxAdditionalSpaceOnResizeTotal;
     }
 
     @Override
@@ -353,8 +341,14 @@ public class GroupByQueryEngine
         throw new NoSuchElementException();
       }
 
-      final PositionMaintainer positionMaintainer = new PositionMaintainer(0, sizesRequired, metricsBuffer.remaining());
-      final RowUpdater rowUpdater = new RowUpdater(metricsBuffer, aggregators, positionMaintainer);
+      final ResizableBuffer resizableBuffer = new ResizableBuffer(metricsBuffer);
+      final RowUpdater rowUpdater = new RowUpdater(
+          aggregators,
+          resizableBuffer,
+          aggregatorInitSizes,
+          aggregatorInitSizesTotal,
+          aggregatorMaxAdditionalSpaceOnResizeTotal
+          );
       if (unprocessedKeys != null) {
         for (ByteBuffer key : unprocessedKeys) {
           final List<ByteBuffer> unprocUnproc = rowUpdater.updateValues(key, ImmutableList.<DimensionSelector>of());
@@ -378,7 +372,7 @@ public class GroupByQueryEngine
       if (rowUpdater.getPositions().isEmpty() && unprocessedKeys != null) {
         throw new ISE(
             "Not enough memory to process even a single item.  Required [%,d] memory, but only have[%,d]",
-            positionMaintainer.getIncrement(), metricsBuffer.remaining()
+            aggregatorMaxSizesTotal, metricsBuffer.remaining()
         );
       }
 
@@ -388,7 +382,7 @@ public class GroupByQueryEngine
               new Function<Map.Entry<ByteBuffer, Integer>, Row>()
               {
                 private final DateTime timestamp = cursor.getTime();
-                private final int[] increments = positionMaintainer.getIncrements();
+                private final int[] pos = new int[]{0, 0};
 
                 @Override
                 public Row apply(@Nullable Map.Entry<ByteBuffer, Integer> input)
@@ -404,10 +398,10 @@ public class GroupByQueryEngine
                     }
                   }
 
-                  int position = input.getValue();
+                  pos[1] = input.getValue();
                   for (int i = 0; i < aggregators.length; ++i) {
-                    theEvent.put(metricNames[i], aggregators[i].get(metricsBuffer, position));
-                    position += increments[i];
+                    theEvent.put(metricNames[i], aggregators[i].get(resizableBuffer, pos));
+                    pos[1] += aggregatorInitSizes[i];
                   }
 
                   for (PostAggregator postAggregator : query.getPostAggregatorSpecs()) {

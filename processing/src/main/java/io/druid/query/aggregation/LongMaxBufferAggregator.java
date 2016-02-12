@@ -25,7 +25,7 @@ import java.nio.ByteBuffer;
 
 /**
  */
-public class LongMaxBufferAggregator implements BufferAggregator
+public class LongMaxBufferAggregator extends FixedSizeBufferAggregator
 {
   private final LongColumnSelector selector;
 

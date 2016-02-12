@@ -26,14 +26,14 @@ import com.yahoo.sketches.memory.MemoryRegion;
 import com.yahoo.sketches.memory.NativeMemory;
 import com.yahoo.sketches.theta.SetOperation;
 import com.yahoo.sketches.theta.Union;
-import io.druid.query.aggregation.BufferAggregator;
+import io.druid.query.aggregation.FixedSizeBufferAggregator;
 import io.druid.segment.ObjectColumnSelector;
 
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
 
-public class SketchBufferAggregator implements BufferAggregator
+public class SketchBufferAggregator extends FixedSizeBufferAggregator
 {
   private static final Logger logger = new Logger(SketchAggregator.class);
 

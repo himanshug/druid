@@ -25,7 +25,7 @@ import io.druid.segment.ObjectColumnSelector;
 import java.nio.ByteBuffer;
 import java.util.List;
 
-public class JavaScriptBufferAggregator implements BufferAggregator
+public class JavaScriptBufferAggregator extends FixedSizeBufferAggregator
 {
   private final ObjectColumnSelector[] selectorList;
   private final JavaScriptAggregator.ScriptAggregator script;

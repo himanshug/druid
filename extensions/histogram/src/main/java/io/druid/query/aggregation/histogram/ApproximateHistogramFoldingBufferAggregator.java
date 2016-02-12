@@ -19,12 +19,12 @@
 
 package io.druid.query.aggregation.histogram;
 
-import io.druid.query.aggregation.BufferAggregator;
+import io.druid.query.aggregation.FixedSizeBufferAggregator;
 import io.druid.segment.ObjectColumnSelector;
 
 import java.nio.ByteBuffer;
 
-public class ApproximateHistogramFoldingBufferAggregator implements BufferAggregator
+public class ApproximateHistogramFoldingBufferAggregator extends FixedSizeBufferAggregator
 {
   private final ObjectColumnSelector<ApproximateHistogram> selector;
   private final int resolution;
