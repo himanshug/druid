@@ -21,9 +21,13 @@ package io.druid.query.aggregation.datasketches.theta;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.yahoo.sketches.theta.ResizeFactor;
 import com.yahoo.sketches.theta.Sketch;
 import io.druid.query.aggregation.AggregatorFactory;
 import io.druid.query.aggregation.AggregatorFactoryNotMergeableException;
+import io.druid.query.aggregation.BufferAggregator;
+import io.druid.segment.ColumnSelectorFactory;
+import io.druid.segment.ObjectColumnSelector;
 
 import java.util.Collections;
 import java.util.List;
@@ -36,6 +40,7 @@ public class SketchMergeAggregatorFactory extends SketchAggregatorFactory
   private final boolean shouldFinalize;
   private final boolean isInputThetaSketch;
   private final Integer errorBoundsStdDev;
+  private final ResizeFactor resizeFactor;
 
   @JsonCreator
   public SketchMergeAggregatorFactory(
@@ -44,13 +49,17 @@ public class SketchMergeAggregatorFactory extends SketchAggregatorFactory
       @JsonProperty("size") Integer size,
       @JsonProperty("shouldFinalize") Boolean shouldFinalize,
       @JsonProperty("isInputThetaSketch") Boolean isInputThetaSketch,
-      @JsonProperty("errorBoundsStdDev") Integer errorBoundsStdDev
+      @JsonProperty("errorBoundsStdDev") Integer errorBoundsStdDev,
+      @JsonProperty("resizeFactor") String resizeFactor
   )
   {
     super(name, fieldName, size, CACHE_TYPE_ID);
     this.shouldFinalize = (shouldFinalize == null) ? true : shouldFinalize.booleanValue();
     this.isInputThetaSketch = (isInputThetaSketch == null) ? false : isInputThetaSketch.booleanValue();
     this.errorBoundsStdDev = errorBoundsStdDev;
+
+    //valid resizeFactor values allowed by sketch-core are X1, X2, X4, X8
+    this.resizeFactor = resizeFactor == null || "X1".equals(resizeFactor) ? null : ResizeFactor.valueOf(resizeFactor);
   }
 
   @Override
@@ -63,7 +72,8 @@ public class SketchMergeAggregatorFactory extends SketchAggregatorFactory
             size,
             shouldFinalize,
             isInputThetaSketch,
-            errorBoundsStdDev
+            errorBoundsStdDev,
+            resizeFactor.toString()
         )
     );
   }
@@ -71,7 +81,15 @@ public class SketchMergeAggregatorFactory extends SketchAggregatorFactory
   @Override
   public AggregatorFactory getCombiningFactory()
   {
-    return new SketchMergeAggregatorFactory(name, name, size, shouldFinalize, false, errorBoundsStdDev);
+    return new SketchMergeAggregatorFactory(
+        name,
+        name,
+        size,
+        shouldFinalize,
+        false,
+        errorBoundsStdDev,
+        resizeFactor == null ? null : resizeFactor.toString()
+    );
   }
 
   @Override
@@ -86,7 +104,8 @@ public class SketchMergeAggregatorFactory extends SketchAggregatorFactory
           Math.max(size, castedOther.size),
           shouldFinalize,
           true,
-          errorBoundsStdDev
+          errorBoundsStdDev,
+          null
       );
     } else {
       throw new AggregatorFactoryNotMergeableException(this, other);
@@ -109,6 +128,12 @@ public class SketchMergeAggregatorFactory extends SketchAggregatorFactory
   public Integer getErrorBoundsStdDev()
   {
     return errorBoundsStdDev;
+  }
+
+  @JsonProperty
+  public String getResizeFactor()
+  {
+    return resizeFactor == null ? null : resizeFactor.toString();
   }
 
   /**
@@ -146,6 +171,44 @@ public class SketchMergeAggregatorFactory extends SketchAggregatorFactory
       return SketchModule.THETA_SKETCH_MERGE_AGG;
     } else {
       return SketchModule.THETA_SKETCH_BUILD_AGG;
+    }
+  }
+
+  @Override
+  public int getInitSize()
+  {
+    if (resizeFactor != null) {
+      // Minimum 16 bytes would be needed to store reference to next buffer in case init buffer
+      // was resized
+      return Math.max(1 + (super.getMaxIntermediateSize()/resizeFactor.getValue()), 16);
+    } else {
+      return getMaxIntermediateSize();
+    }
+  }
+
+  @Override
+  public int getMaxIntermediateSize()
+  {
+    if (resizeFactor != null) {
+      return 1 + super.getMaxIntermediateSize();
+    } else {
+      return super.getMaxIntermediateSize();
+    }
+  }
+
+  @SuppressWarnings("unchecked")
+  @Override
+  public BufferAggregator factorizeBuffered(ColumnSelectorFactory metricFactory)
+  {
+    ObjectColumnSelector selector = metricFactory.makeObjectColumnSelector(fieldName);
+    if (selector == null) {
+      return new EmptySketchBufferAggregator();
+    } else {
+      if (resizeFactor != null) {
+        return new SketchResizableBufferAggregator(selector, size, resizeFactor, getInitSize());
+      } else {
+        return new SketchBufferAggregator(selector, size, getMaxIntermediateSize());
+      }
     }
   }
 

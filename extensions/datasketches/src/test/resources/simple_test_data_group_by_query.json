@@ -12,6 +12,13 @@
     },
     {
       "type": "thetaSketch",
+      "name": "sketch_count_with_resize_aggregator",
+      "fieldName": "pty_country",
+      "resizeFactor": "X8",
+      "size": 16384
+    },
+    {
+      "type": "thetaSketch",
       "name": "non_existing_col_validation",
       "fieldName": "non_existing_col",
       "size": 16384

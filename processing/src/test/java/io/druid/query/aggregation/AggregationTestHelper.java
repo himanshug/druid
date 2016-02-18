@@ -71,7 +71,6 @@ import io.druid.segment.QueryableIndexSegment;
 import io.druid.segment.Segment;
 import io.druid.segment.TestHelper;
 import io.druid.segment.incremental.IncrementalIndex;
-import io.druid.segment.incremental.IndexSizeExceededException;
 import io.druid.segment.incremental.OnheapIncrementalIndex;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.LineIterator;
@@ -139,7 +138,7 @@ public class AggregationTestHelper
           @Override
           public ByteBuffer get()
           {
-            return ByteBuffer.allocate(1024 * 1024);
+            return ByteBuffer.allocate(1024 * 1024 * 16);
           }
         });
 

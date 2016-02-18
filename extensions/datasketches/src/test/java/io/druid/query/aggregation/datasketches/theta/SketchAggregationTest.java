@@ -84,6 +84,7 @@ public class SketchAggregationTest
             ImmutableMap
                 .<String, Object>builder()
                 .put("sketch_count", 50.0)
+                .put("sketch_count_with_resize_aggregator", 50.0)
                 .put("sketchEstimatePostAgg", 50.0)
                 .put("sketchUnionPostAggEstimate", 50.0)
                 .put("sketchIntersectionPostAggEstimate", 50.0)
@@ -197,10 +198,11 @@ public class SketchAggregationTest
   @Test
   public void testSketchMergeAggregatorFactorySerde() throws Exception
   {
-    assertAggregatorFactorySerde(new SketchMergeAggregatorFactory("name", "fieldName", 16, null, null, null));
-    assertAggregatorFactorySerde(new SketchMergeAggregatorFactory("name", "fieldName", 16, false, true, null));
-    assertAggregatorFactorySerde(new SketchMergeAggregatorFactory("name", "fieldName", 16, true, false, null));
-    assertAggregatorFactorySerde(new SketchMergeAggregatorFactory("name", "fieldName", 16, true, false, 2));
+    assertAggregatorFactorySerde(new SketchMergeAggregatorFactory("name", "fieldName", 16, null, null, null, null));
+    assertAggregatorFactorySerde(new SketchMergeAggregatorFactory("name", "fieldName", 16, false, true, null, null));
+    assertAggregatorFactorySerde(new SketchMergeAggregatorFactory("name", "fieldName", 16, true, false, null, null));
+    assertAggregatorFactorySerde(new SketchMergeAggregatorFactory("name", "fieldName", 16, true, false, 2, null));
+    assertAggregatorFactorySerde(new SketchMergeAggregatorFactory("name", "fieldName", 16, true, false, 2, "X2"));
   }
 
   @Test
@@ -208,16 +210,16 @@ public class SketchAggregationTest
   {
     Sketch sketch = Sketches.updateSketchBuilder().build(128);
 
-    SketchMergeAggregatorFactory agg = new SketchMergeAggregatorFactory("name", "fieldName", 16, null, null, null);
+    SketchMergeAggregatorFactory agg = new SketchMergeAggregatorFactory("name", "fieldName", 16, null, null, null, null);
     Assert.assertEquals(0.0, ((Double) agg.finalizeComputation(sketch)).doubleValue(), 0.0001);
 
-    agg = new SketchMergeAggregatorFactory("name", "fieldName", 16, true, null, null);
+    agg = new SketchMergeAggregatorFactory("name", "fieldName", 16, true, null, null, null);
     Assert.assertEquals(0.0, ((Double) agg.finalizeComputation(sketch)).doubleValue(), 0.0001);
 
-    agg = new SketchMergeAggregatorFactory("name", "fieldName", 16, false, null, null);
+    agg = new SketchMergeAggregatorFactory("name", "fieldName", 16, false, null, null, null);
     Assert.assertEquals(sketch, agg.finalizeComputation(sketch));
     
-    agg = new SketchMergeAggregatorFactory("name", "fieldName", 16, true, null, 2);
+    agg = new SketchMergeAggregatorFactory("name", "fieldName", 16, true, null, 2, null);
     SketchEstimateWithErrorBounds est = (SketchEstimateWithErrorBounds) agg.finalizeComputation(sketch);
     Assert.assertEquals(0.0, est.getEstimate(), 0.0001);
     Assert.assertEquals(0.0, est.getHighBound(), 0.0001);
