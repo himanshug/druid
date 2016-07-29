@@ -24,6 +24,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Joiner;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import io.druid.indexing.common.TaskLock;
 import io.druid.indexing.common.TaskStatus;
 import io.druid.indexing.common.TaskToolbox;
@@ -34,6 +35,7 @@ import org.joda.time.DateTime;
 import org.joda.time.Interval;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 
 public abstract class AbstractTask implements Task
@@ -122,6 +124,13 @@ public abstract class AbstractTask implements Task
   public String getDataSource()
   {
     return dataSource;
+  }
+
+  @JsonProperty
+  @Override
+  public List<String> getDataSources()
+  {
+    return ImmutableList.of(dataSource);
   }
 
   @Override

@@ -21,8 +21,10 @@ package io.druid.indexing.common;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.base.Objects;
+import com.google.common.base.Preconditions;
 import org.joda.time.Interval;
+
+import java.util.List;
 
 /**
  * Represents a lock held by some task. Immutable.
@@ -31,6 +33,7 @@ public class TaskLock
 {
   private final String groupId;
   private final String dataSource;
+  private final List<String> dataSources;
   private final Interval interval;
   private final String version;
 
@@ -38,12 +41,19 @@ public class TaskLock
   public TaskLock(
       @JsonProperty("groupId") String groupId,
       @JsonProperty("dataSource") String dataSource,
+      @JsonProperty("dataSources") List<String> dataSources,
       @JsonProperty("interval") Interval interval,
       @JsonProperty("version") String version
   )
   {
+    Preconditions.checkArgument(
+        dataSource == null || dataSources == null,
+        "only one of dataSource or dataSources should be present"
+    );
+
     this.groupId = groupId;
     this.dataSource = dataSource;
+    this.dataSources = dataSources;
     this.interval = interval;
     this.version = version;
   }
@@ -61,6 +71,12 @@ public class TaskLock
   }
 
   @JsonProperty
+  public List<String> getDataSources()
+  {
+    return dataSources;
+  }
+
+  @JsonProperty
   public Interval getInterval()
   {
     return interval;
@@ -75,31 +91,51 @@ public class TaskLock
   @Override
   public boolean equals(Object o)
   {
-    if (!(o instanceof TaskLock)) {
-      return false;
-    } else {
-      final TaskLock x = (TaskLock) o;
-      return Objects.equal(this.groupId, x.groupId) &&
-             Objects.equal(this.dataSource, x.dataSource) &&
-             Objects.equal(this.interval, x.interval) &&
-             Objects.equal(this.version, x.version);
+    if (this == o) {
+      return true;
     }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+
+    TaskLock taskLock = (TaskLock) o;
+
+    if (!groupId.equals(taskLock.groupId)) {
+      return false;
+    }
+    if (dataSource != null ? !dataSource.equals(taskLock.dataSource) : taskLock.dataSource != null) {
+      return false;
+    }
+    if (dataSources != null ? !dataSources.equals(taskLock.dataSources) : taskLock.dataSources != null) {
+      return false;
+    }
+    if (!interval.equals(taskLock.interval)) {
+      return false;
+    }
+    return version.equals(taskLock.version);
+
   }
 
   @Override
   public int hashCode()
   {
-    return Objects.hashCode(groupId, dataSource, interval, version);
+    int result = groupId.hashCode();
+    result = 31 * result + (dataSource != null ? dataSource.hashCode() : 0);
+    result = 31 * result + (dataSources != null ? dataSources.hashCode() : 0);
+    result = 31 * result + interval.hashCode();
+    result = 31 * result + version.hashCode();
+    return result;
   }
 
   @Override
   public String toString()
   {
-    return Objects.toStringHelper(this)
-                  .add("groupId", groupId)
-                  .add("dataSource", dataSource)
-                  .add("interval", interval)
-                  .add("version", version)
-                  .toString();
+    return "TaskLock{" +
+           "groupId='" + groupId + '\'' +
+           ", dataSource='" + dataSource + '\'' +
+           ", dataSources=" + dataSources +
+           ", interval=" + interval +
+           ", version='" + version + '\'' +
+           '}';
   }
 }

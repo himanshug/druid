@@ -44,6 +44,7 @@ import org.joda.time.DateTime;
 import org.joda.time.Interval;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -126,6 +127,7 @@ public class TaskLockbox
         }
         final Optional<TaskLock> acquiredTaskLock = tryLock(
             task,
+            savedTaskLock.getDataSource(),
             savedTaskLock.getInterval(),
             Optional.of(savedTaskLock.getVersion())
         );
@@ -203,7 +205,50 @@ public class TaskLockbox
    */
   public Optional<TaskLock> tryLock(final Task task, final Interval interval)
   {
-    return tryLock(task, interval, Optional.<String>absent());
+    giant.lock();
+
+    try {
+      List<String> dataSources = task.getDataSources();
+
+      TaskLock lastTaken = null;
+      List<String> lockedDataSources = new ArrayList<>(dataSources.size());
+
+      for (String ds : dataSources) {
+        Optional<TaskLock> lock = tryLock(
+            task,
+            ds,
+            interval,
+            Optional.<String>absent()
+        );
+
+        if (lock.isPresent()) {
+          lastTaken = lock.get();
+        } else {
+          //release the locks already taken in reverse order
+          for (int i = lockedDataSources.size()-1; i >= 0 ; i--) {
+            unlock(task, lockedDataSources.get(i), interval);
+          }
+
+          return Optional.absent();
+        }
+      }
+
+      if (dataSources.size() == 1) {
+        return Optional.of(lastTaken);
+      } else {
+        return Optional.of(
+            new TaskLock(
+                lastTaken.getGroupId(),
+                null,
+                dataSources,
+                lastTaken.getInterval(),
+                lastTaken.getVersion()
+            )
+        );
+      }
+    } finally {
+      giant.unlock();
+    }
   }
 
   /**
@@ -220,7 +265,7 @@ public class TaskLockbox
    * @return lock version if lock was acquired, absent otherwise
    * @throws IllegalStateException if the task is not a valid active task
    */
-  private Optional<TaskLock> tryLock(final Task task, final Interval interval, final Optional<String> preferredVersion)
+  private Optional<TaskLock> tryLock(final Task task, final String dataSource, final Interval interval, final Optional<String> preferredVersion)
   {
     giant.lock();
 
@@ -229,7 +274,6 @@ public class TaskLockbox
         throw new ISE("Unable to grant lock to inactive Task [%s]", task.getId());
       }
       Preconditions.checkArgument(interval.toDurationMillis() > 0, "interval empty");
-      final String dataSource = task.getDataSource();
       final List<TaskLockPosse> foundPosses = findLockPossesForInterval(dataSource, interval);
       final TaskLockPosse posseToUse;
 
@@ -273,7 +317,7 @@ public class TaskLockbox
           version = new DateTime().toString();
         }
 
-        posseToUse = new TaskLockPosse(new TaskLock(task.getGroupId(), dataSource, interval, version));
+        posseToUse = new TaskLockPosse(new TaskLock(task.getGroupId(), dataSource, null, interval, version));
         running.get(dataSource)
                .put(interval, posseToUse);
 
@@ -347,7 +391,20 @@ public class TaskLockbox
     giant.lock();
 
     try {
-      final String dataSource = task.getDataSource();
+      List<String> dataSources = task.getDataSources();
+      for (int i = dataSources.size()-1; i >= 0 ; i--) {
+        unlock(task, dataSources.get(i), interval);
+      }
+    } finally {
+      giant.unlock();
+    }
+  }
+
+  private void unlock(final Task task, final String dataSource, final Interval interval)
+  {
+    giant.lock();
+
+    try {
       final NavigableMap<Interval, TaskLockPosse> dsRunning = running.get(dataSource);
 
       // So we can alert if activeTasks try to release stuff they don't have
