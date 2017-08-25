@@ -58,8 +58,8 @@ import io.druid.server.http.security.ConfigResourceFilter;
 import io.druid.server.http.security.StateResourceFilter;
 import io.druid.server.security.Access;
 import io.druid.server.security.Action;
-import io.druid.server.security.AuthorizerMapper;
 import io.druid.server.security.AuthorizationUtils;
+import io.druid.server.security.AuthorizerMapper;
 import io.druid.server.security.ForbiddenException;
 import io.druid.server.security.Resource;
 import io.druid.server.security.ResourceAction;
@@ -85,6 +85,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.io.IOException;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -242,6 +243,29 @@ public class OverlordResource
           }
         }
     );
+  }
+
+  @POST
+  @Path("/taskStatus")
+  @Produces(MediaType.APPLICATION_JSON)
+  @ResourceFilters(StateResourceFilter.class)
+  public Response getMultipleTaskStatuses(
+      Set<String> taskIds
+  )
+  {
+    if (taskIds == null || taskIds.size() == 0) {
+      return Response.status(Response.Status.BAD_REQUEST).entity("No TaskIds provided.").build();
+    }
+
+    Map<String, TaskStatus> result = new HashMap<>(taskIds.size());
+    for (String taskId : taskIds) {
+      Optional<TaskStatus> optional = taskStorageQueryAdapter.getStatus(taskId);
+      if (optional.isPresent()) {
+        result.put(taskId, optional.get());
+      }
+    }
+
+    return Response.ok().entity(result).build();
   }
 
   @GET
