@@ -58,8 +58,8 @@ import io.druid.server.http.security.ConfigResourceFilter;
 import io.druid.server.http.security.StateResourceFilter;
 import io.druid.server.security.Access;
 import io.druid.server.security.Action;
-import io.druid.server.security.AuthorizerMapper;
 import io.druid.server.security.AuthorizationUtils;
+import io.druid.server.security.AuthorizerMapper;
 import io.druid.server.security.ForbiddenException;
 import io.druid.server.security.Resource;
 import io.druid.server.security.ResourceAction;
@@ -345,6 +345,48 @@ public class OverlordResource
             }
 
             return Response.ok().entity(retMap).build();
+          }
+        }
+    );
+  }
+
+  @GET
+  @Path("/activeTasks")
+  @Produces(MediaType.APPLICATION_JSON)
+  public Response getActiveTasks(
+      @QueryParam("full") Boolean full,
+      @Context final HttpServletRequest req
+  )
+  {
+    boolean isFull = full == null || full.booleanValue();
+
+    final List<Task> allActiveTasks = taskStorageQueryAdapter.getActiveTasks();
+    Function<Task, Iterable<ResourceAction>> raGenerator = task -> {
+      return Lists.newArrayList(
+          new ResourceAction(
+              new Resource(task.getDataSource(), ResourceType.DATASOURCE),
+              Action.READ
+          )
+      );
+    };
+
+    final List<Task> activeTasks = Lists.newArrayList(
+        AuthorizationUtils.filterAuthorizedResources(
+            req,
+            allActiveTasks,
+            raGenerator,
+            authorizerMapper
+        )
+    );
+
+    return asLeaderWith(
+        taskMaster.getTaskRunner(),
+        new Function<TaskRunner, Response>()
+        {
+          @Override
+          public Response apply(TaskRunner taskRunner)
+          {
+            return Response.ok(isFull ? activeTasks : Lists.transform(activeTasks, task -> task.getId())).build();
           }
         }
     );
