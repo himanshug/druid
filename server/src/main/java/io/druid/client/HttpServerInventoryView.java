@@ -384,7 +384,7 @@ public class HttpServerInventoryView implements ServerInventoryView, FilteredSer
     );
 
     if (holder.druidServer == server) {
-      holder.updateSegmentsListAsync();
+      holder.start();
     } else {
       log.info("Server[%s] already exists.", server.getName());
     }
@@ -394,6 +394,7 @@ public class HttpServerInventoryView implements ServerInventoryView, FilteredSer
   {
     DruidServerHolder holder = servers.remove(server.getName());
     if (holder != null) {
+      holder.stop();
       runServerCallbacks(holder.druidServer);
     } else {
       log.info("Server[%s] did not exist. Removal notification ignored.", server.getName());
@@ -428,6 +429,8 @@ public class HttpServerInventoryView implements ServerInventoryView, FilteredSer
 
     private final CountDownLatch initializationLatch = new CountDownLatch(1);
 
+    private final LifecycleLock startStopLock = new LifecycleLock();
+
     private volatile long unstableStartTime = -1;
     private volatile int consecutiveFailedAttemptCount = 0;
 
@@ -450,6 +453,28 @@ public class HttpServerInventoryView implements ServerInventoryView, FilteredSer
       };
     }
 
+    void start()
+    {
+      if (!startStopLock.canStart()) {
+        throw new ISE("can't start.");
+      }
+
+      log.info("Starting DruidServerHolder[%s].", druidServer.getName());
+      startStopLock.started();
+      startStopLock.exitStart();
+
+      addNextSyncToWorkQueue();
+    }
+
+    void stop()
+    {
+      if (!startStopLock.canStop()) {
+        throw new ISE("can't stop.");
+      }
+
+      log.info("Stopping DruidServerHolder[%s].", druidServer.getName());
+    }
+
     //wait for first fetch of segment listing from server.
     void awaitInitialization()
     {
@@ -466,6 +491,11 @@ public class HttpServerInventoryView implements ServerInventoryView, FilteredSer
 
     void updateSegmentsListAsync()
     {
+      if (!startStopLock.awaitStarted(1, TimeUnit.MILLISECONDS)) {
+        log.info("Skipping sync for server[%s].", druidServer.getName());
+        return;
+      }
+
       try {
         final String req;
         if (counter != null) {
@@ -507,6 +537,11 @@ public class HttpServerInventoryView implements ServerInventoryView, FilteredSer
               @Override
               public void onSuccess(InputStream stream)
               {
+                if (!startStopLock.awaitStarted(1, TimeUnit.MILLISECONDS)) {
+                  log.info("Skipping sync for server[%s].", druidServer.getName());
+                  return;
+                }
+
                 try {
                   if (responseHandler.status == HttpServletResponse.SC_NO_CONTENT) {
                     log.debug("Received NO CONTENT from [%s]", druidServer.getName());
@@ -603,6 +638,11 @@ public class HttpServerInventoryView implements ServerInventoryView, FilteredSer
               @Override
               public void onFailure(Throwable t)
               {
+                if (!startStopLock.awaitStarted(1, TimeUnit.MILLISECONDS)) {
+                  log.info("Skipping sync for server[%s].", druidServer.getName());
+                  return;
+                }
+
                 try {
                   String logMsg = StringUtils.nonStrictFormat(
                       "failed to fetch segment list from server [%s]. Return code [%s], Reason: [%s]",
