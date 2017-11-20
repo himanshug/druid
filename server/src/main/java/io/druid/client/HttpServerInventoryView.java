@@ -70,12 +70,10 @@ import java.net.URL;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
-import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -108,11 +106,6 @@ public class HttpServerInventoryView implements ServerInventoryView, FilteredSer
   private final ConcurrentHashMap<String, DruidServerHolder> servers = new ConcurrentHashMap<>();
 
   private volatile ScheduledExecutorService executor;
-
-  // the work queue, all items in this are sequentially processed by main thread setup in start()
-  // used to call inventoryInitialized on all SegmentCallbacks and
-  // for keeping segment list for each queryable server uptodate.
-  private final BlockingQueue<Runnable> queue = new LinkedBlockingDeque<>();
 
   private final HttpClient httpClient;
   private final ObjectMapper smileMapper;
@@ -154,35 +147,6 @@ public class HttpServerInventoryView implements ServerInventoryView, FilteredSer
             "HttpServerInventoryView-%s"
         );
 
-        executor.execute(
-            new Runnable()
-            {
-              @Override
-              public void run()
-              {
-                if (!lifecycleLock.awaitStarted()) {
-                  log.error("WTF! lifecycle not started, segments will not be discovered.");
-                  return;
-                }
-
-                while (!Thread.interrupted() && lifecycleLock.awaitStarted(1, TimeUnit.MILLISECONDS)) {
-                  try {
-                    queue.take().run();
-                  }
-                  catch (InterruptedException ex) {
-                    log.info("main thread interrupted, served segments list is not synced anymore.");
-                    Thread.currentThread().interrupt();
-                  }
-                  catch (Throwable th) {
-                    log.makeAlert(th, "main thread ignored error").emit();
-                  }
-                }
-
-                log.info("HttpServerInventoryView main thread exited.");
-              }
-            }
-        );
-
         DruidNodeDiscovery druidNodeDiscovery = druidNodeDiscoveryProvider.getForService(DataNodeService.DISCOVERY_SERVICE_KEY);
         druidNodeDiscovery.registerListener(
             new DruidNodeDiscovery.Listener()
@@ -197,7 +161,7 @@ public class HttpServerInventoryView implements ServerInventoryView, FilteredSer
                 );
 
                 if (!initialized.getAndSet(true)) {
-                  queue.add(HttpServerInventoryView.this::serverInventoryInitialized);
+                  executor.execute(HttpServerInventoryView.this::serverInventoryInitialized);
                 }
               }
 
@@ -255,8 +219,6 @@ public class HttpServerInventoryView implements ServerInventoryView, FilteredSer
         executor.shutdownNow();
         executor = null;
       }
-
-      queue.clear();
 
       log.info("Stopped HttpServerInventoryView.");
     }
@@ -442,14 +404,10 @@ public class HttpServerInventoryView implements ServerInventoryView, FilteredSer
       this.serverHostAndPort = HostAndPort.fromString(druidServer.getHost());
 
       this.addToQueueRunnable = () -> {
-        queue.add(
-            () -> {
-              DruidServerHolder holder = servers.get(druidServer.getName());
-              if (holder != null) {
-                holder.updateSegmentsListAsync();
-              }
-            }
-        );
+        DruidServerHolder holder = servers.get(druidServer.getName());
+        if (holder != null) {
+          holder.updateSegmentsListAsync();
+        }
       };
     }
 
@@ -762,7 +720,7 @@ public class HttpServerInventoryView implements ServerInventoryView, FilteredSer
           ).emit();
         }
       } else {
-        addToQueueRunnable.run();
+        executor.execute(addToQueueRunnable);
       }
     }
 
