@@ -19,27 +19,11 @@
 
 package io.druid.atomix.discovery;
 
-import com.google.inject.Inject;
-import com.metamx.common.logger.Logger;
-import io.druid.atomix.CopycatClientProvider;
-import io.druid.discovery.DruidNodeDiscovery;
-import io.druid.discovery.DruidNodeDiscoveryProvider;
-import io.druid.java.util.common.ISE;
-import io.druid.java.util.common.lifecycle.LifecycleStart;
-import io.druid.java.util.common.lifecycle.LifecycleStop;
-import io.druid.server.DruidNode;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-
 /**
  */
-public class CopycatDruidNodeDiscoveryProvider implements DruidNodeDiscoveryProvider
+public class CopycatDruidNodeDiscoveryProvider // implements DruidNodeDiscoveryProvider
 {
+  /*
   private static final Logger log = new Logger(CopycatDruidNodeDiscoveryProvider.class);
 
   private final CopycatClientProvider atomix;
@@ -246,5 +230,5 @@ public class CopycatDruidNodeDiscoveryProvider implements DruidNodeDiscoveryProv
         });
       }
     }
-  }
+  } */
 }

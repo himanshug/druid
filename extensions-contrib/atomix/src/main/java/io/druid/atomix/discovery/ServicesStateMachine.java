@@ -19,27 +19,10 @@
 
 package io.druid.atomix.discovery;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import io.atomix.copycat.server.Commit;
-import io.atomix.copycat.server.StateMachine;
-import io.atomix.copycat.server.StateMachineExecutor;
-import io.atomix.copycat.server.session.ServerSession;
-import io.atomix.copycat.server.session.SessionListener;
-import io.druid.java.util.common.logger.Logger;
-import io.druid.server.DruidNode;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 /**
  */
-public class ServicesStateMachine extends StateMachine implements SessionListener
-{
+public class ServicesStateMachine // extends StateMachine implements SessionListener
+{ /*
   private static final Logger log = new Logger(ServicesStateMachine.class);
 
   static final String JOIN = "join";
@@ -199,11 +182,12 @@ public class ServicesStateMachine extends StateMachine implements SessionListene
 
       log.info("Member [%s] removed.", m.getMemberInfo());
     }
-  }
+  } */
 }
 
 class MemberHolder
 {
+  /*
   Commit<JoinCommand> commit;
   DruidNode member;
 
@@ -217,5 +201,6 @@ class MemberHolder
   {
     return member;
   }
+  */
 }
 

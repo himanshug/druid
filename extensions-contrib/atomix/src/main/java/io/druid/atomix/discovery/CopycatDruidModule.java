@@ -20,21 +20,8 @@
 package io.druid.atomix.discovery;
 
 import com.fasterxml.jackson.databind.Module;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.inject.Binder;
-import com.google.inject.Key;
-import com.google.inject.Provides;
-import io.druid.atomix.AtomixConfig;
-import io.druid.atomix.CopycatClientProvider;
-import io.druid.atomix.CopycatServerProvider;
-import io.druid.discovery.DruidServiceAnnouncer;
-import io.druid.discovery.DruidNodeDiscoveryProvider;
-import io.druid.guice.JsonConfigProvider;
-import io.druid.guice.LazySingleton;
-import io.druid.guice.LifecycleModule;
-import io.druid.guice.ManageLifecycle;
-import io.druid.guice.PolyBind;
 import io.druid.initialization.DruidModule;
 
 import java.util.List;
@@ -48,6 +35,7 @@ public class CopycatDruidModule implements DruidModule
   @Override
   public void configure(Binder binder)
   {
+    /*
     JsonConfigProvider.bind(binder, "druid.atomix", AtomixConfig.class);
 
     binder.bind(CopycatClientProvider.class).in(ManageLifecycle.class);
@@ -62,21 +50,23 @@ public class CopycatDruidModule implements DruidModule
             .addBinding(TYPE)
             .to(CopycatDruidNodeDiscoveryProvider.class)
             .in(LazySingleton.class);
+            */
   }
 
-  //TODO how to discover if it is coordinator and start server based on that only.
-  @Provides
-  public CopycatServerProvider getCopycatServerProvider(
-      AtomixConfig config,
-      ObjectMapper mapper
-  )
-  {
-    return new CopycatServerProvider(config, mapper, false);
-  }
+//  //TODO how to discover if it is coordinator and start server based on that only.
+//  @Provides
+//  public CopycatServerProvider getCopycatServerProvider(
+//      AtomixConfig config,
+//      ObjectMapper mapper
+//  )
+//  {
+//    return new CopycatServerProvider(config, mapper, false);
+//  }
 
   @Override
   public List<? extends Module> getJacksonModules()
   {
     return ImmutableList.of();
   }
+
 }

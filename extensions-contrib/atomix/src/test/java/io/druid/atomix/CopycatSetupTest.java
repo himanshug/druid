@@ -19,25 +19,7 @@
 
 package io.druid.atomix;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import com.metamx.common.logger.Logger;
-import com.metamx.emitter.EmittingLogger;
-import com.metamx.emitter.core.LoggingEmitter;
-import com.metamx.emitter.service.ServiceEmitter;
-import io.druid.java.util.common.RE;
-import io.druid.segment.TestHelper;
-import io.druid.server.coordination.zk.CoordinatorRole;
-import io.druid.server.coordination.zk.LeaderDiscovery;
-import io.druid.server.coordination.zk.Node;
-import io.druid.server.coordination.zk.NodeGroupChangeListener;
-import org.eclipse.jetty.util.ConcurrentHashSet;
-import org.junit.Test;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.CountDownLatch;
 
 /**
  */
@@ -195,7 +177,7 @@ public class CopycatSetupTest
   }
 */
   //TODO: this does not test when multiple servers go down simultaneously
-  @Test(timeout = 60000)
+/*  @Test(timeout = 60000)
   public void testIt() throws Exception
   {
     registerEmitter();
@@ -459,6 +441,6 @@ public class CopycatSetupTest
       changes.add(LEAVE);
       System.err.println("leaveLeadership");
     }
-  }
+  } */
 }
 

@@ -19,23 +19,10 @@
 
 package io.druid.atomix.discovery;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.inject.Inject;
-import com.metamx.emitter.EmittingLogger;
-import io.druid.atomix.CopycatClientProvider;
-import io.druid.discovery.DruidServiceAnnouncer;
-import io.druid.java.util.common.lifecycle.LifecycleStart;
-import io.druid.java.util.common.lifecycle.LifecycleStop;
-import io.druid.server.DruidNode;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
-
 /**
  */
-public class CopycatDruidServiceAnnouncer implements DruidServiceAnnouncer
-{
+public class CopycatDruidServiceAnnouncer // implements DruidServiceAnnouncer
+{/*
   private static final EmittingLogger log = new EmittingLogger(CopycatDruidServiceAnnouncer.class);
 
   private final CopycatClientProvider atomix;
@@ -102,5 +89,5 @@ public class CopycatDruidServiceAnnouncer implements DruidServiceAnnouncer
   public synchronized void unannounce(DruidNode node)
   {
     //TODO
-  }
+  } */
 }
