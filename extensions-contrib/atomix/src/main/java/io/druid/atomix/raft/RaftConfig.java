@@ -17,32 +17,10 @@
  * under the License.
  */
 
-package io.druid.atomix.discovery;
+package io.druid.atomix.raft;
 
 /**
  */
-public class JoinCommand // implements Command<DruidNode>
-{/*
-  private final DruidNode node;
-
-  public JoinCommand(
-      @JsonProperty("node") DruidNode node
-  )
-  {
-    this.node = node;
-  }
-
-  @JsonProperty
-  public DruidNode getNode()
-  {
-    return node;
-  }
-
-  @Override
-  public String toString()
-  {
-    return "ServiceAnnounceCommand{" +
-           "node=" + node +
-           '}';
-  } */
+public class RaftConfig
+{
 }

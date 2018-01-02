@@ -19,16 +19,10 @@
 
 package io.druid.atomix.discovery;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import io.atomix.copycat.Command;
-import io.druid.server.DruidNode;
-
-import java.util.List;
-
 /**
  */
-public class ListenCommand implements Command<List<DruidNode>>
-{
+public class ListenCommand // implements Command<List<DruidNode>>
+{ /*
   private final String service;
 
   public ListenCommand(
@@ -50,5 +44,5 @@ public class ListenCommand implements Command<List<DruidNode>>
     return "ListenCommand{" +
            "service='" + service + '\'' +
            '}';
-  }
+  } */
 }
