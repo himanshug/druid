@@ -57,6 +57,7 @@ import io.druid.segment.incremental.IncrementalIndexStorageAdapter;
 import org.joda.time.Interval;
 
 import java.nio.ByteBuffer;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -253,6 +254,14 @@ public class GroupByStrategyV1 implements GroupByStrategy
         outerQuery.postProcess(GroupByQueryHelper.postAggregate(query, outerQueryResultIndex)),
         outerQueryResultIndex
     );
+  }
+
+  @Override
+  public Sequence<Row> processSubtotalsSpec(
+      GroupByQuery query, List<List<String>> subtotals, GroupByQueryResource resource, Sequence<Row> queryResult
+  )
+  {
+    throw new UnsupportedOperationException("subtotalsSpec is not supported for v1 groupBy strategy.");
   }
 
   @Override

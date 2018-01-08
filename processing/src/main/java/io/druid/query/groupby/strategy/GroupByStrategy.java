@@ -30,6 +30,7 @@ import io.druid.query.groupby.GroupByQueryQueryToolChest;
 import io.druid.query.groupby.resource.GroupByQueryResource;
 import io.druid.segment.StorageAdapter;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
@@ -78,6 +79,13 @@ public interface GroupByStrategy
       GroupByQuery query,
       GroupByQueryResource resource,
       Sequence<Row> subqueryResult
+  );
+
+  Sequence<Row> processSubtotalsSpec(
+      GroupByQuery query,
+      List<List<String>> subtotals,
+      GroupByQueryResource resource,
+      Sequence<Row> queryResult
   );
 
   QueryRunner<Row> mergeRunners(

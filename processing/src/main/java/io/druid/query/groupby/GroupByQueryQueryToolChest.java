@@ -218,7 +218,17 @@ public class GroupByQueryQueryToolChest extends QueryToolChest<Row, GroupByQuery
 
       return groupByStrategy.processSubqueryResult(subquery, query, resource, finalizingResults);
     } else {
-      return groupByStrategy.mergeResults(runner, query, context);
+      Sequence<Row> baseResult = groupByStrategy.mergeResults(runner, query, context);
+      if (query.getSubtotalsSpec() != null) {
+        return groupByStrategy.processSubtotalsSpec(
+            query,
+            query.getSubtotalsSpec(),
+            resource,
+            baseResult
+        );
+      } else {
+        return baseResult;
+      }
     }
   }
 
