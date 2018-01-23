@@ -160,7 +160,7 @@ public class GroupByRowProcessor
     return grouper;
   }
 
-  public static Sequence<Row> runQueryOnGrouper(GroupByQuery query, List<String> subtotalSpec, Supplier<Grouper> grouper)
+  public static Sequence<Row> getRowsFromGrouper(GroupByQuery query, List<String> subtotalSpec, Supplier<Grouper> grouper)
   {
     return new BaseSequence<>(
         new BaseSequence.IteratorMaker<Row, CloseableGrouperIterator<RowBasedKey, Row>>()

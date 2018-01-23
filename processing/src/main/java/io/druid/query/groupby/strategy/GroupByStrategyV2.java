@@ -341,7 +341,7 @@ public class GroupByStrategyV2 implements GroupByStrategy
           @Override
           public Sequence<Row> run(QueryPlus<Row> queryPlus, Map<String, Object> responseContext)
           {
-            return GroupByRowProcessor.runQueryOnGrouper(
+            return GroupByRowProcessor.getRowsFromGrouper(
                 query,
                 null,
                 grouperSupplier
@@ -364,24 +364,26 @@ public class GroupByStrategyV2 implements GroupByStrategy
   @Override
   public Sequence<Row> processSubtotalsSpec(
       GroupByQuery query,
-      List<List<String>> subtotals,
+      List<List<String>> subtotalsIn, //TODO: remove this argument
       GroupByQueryResource resource,
       Sequence<Row> queryResult
   )
   {
+    GroupByQuery queryWithoutSubtotalsSpec = query.withSubtotalsSpec(null);
+    List<List<String>> subtotals = query.getSubtotalsSpec();
     // This contains all closeable objects which are closed when the returned iterator iterates all the elements,
     // or an exceptions is thrown. The objects are closed in their reverse order.
     final List<Closeable> closeOnExit = Lists.newArrayList();
 
     Supplier<Grouper> grouperSupplier = Suppliers.memoize(
         () -> GroupByRowProcessor.createGrouper(
-            query.withAggregatorSpecs(
-                Lists.transform(query.getAggregatorSpecs(), (agg) -> agg.getCombiningFactory())
+            queryWithoutSubtotalsSpec.withAggregatorSpecs(
+                Lists.transform(queryWithoutSubtotalsSpec.getAggregatorSpecs(), (agg) -> agg.getCombiningFactory())
             ).withDimensionSpecs(
-                Lists.transform(query.getDimensions(), (dimSpec) -> new DefaultDimensionSpec(dimSpec.getOutputName(), dimSpec.getOutputName()))
+                Lists.transform(queryWithoutSubtotalsSpec.getDimensions(), (dimSpec) -> new DefaultDimensionSpec(dimSpec.getOutputName(), dimSpec.getOutputName()))
             ),
             queryResult,
-            GroupByQueryHelper.rowSignatureFor(query),
+            GroupByQueryHelper.rowSignatureFor(queryWithoutSubtotalsSpec),
             configSupplier.get(),
             resource,
             spillMapper,
@@ -393,7 +395,7 @@ public class GroupByStrategyV2 implements GroupByStrategy
     List<Sequence<Row>> subtotalsResults = new ArrayList<>(subtotals.size());
 
     for (List<String> subtotalSpec : subtotals) {
-      GroupByQuery subtotalQuery = query.withDimensionSpecs(
+      GroupByQuery subtotalQuery = queryWithoutSubtotalsSpec.withDimensionSpecs(
           subtotalSpec.stream().map(s -> new DefaultDimensionSpec(s, s)).collect(Collectors.toList())
       );
 
@@ -402,8 +404,8 @@ public class GroupByStrategyV2 implements GroupByStrategy
                            @Override
                            public Sequence<Row> run(QueryPlus<Row> queryPlus, Map<String, Object> responseContext)
                            {
-                             return GroupByRowProcessor.runQueryOnGrouper(
-                                 query,
+                             return GroupByRowProcessor.getRowsFromGrouper(
+                                 queryWithoutSubtotalsSpec,
                                  subtotalSpec,
                                  grouperSupplier
                              );

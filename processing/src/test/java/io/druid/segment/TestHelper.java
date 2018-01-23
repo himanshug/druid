@@ -298,6 +298,7 @@ public class TestHelper
 
   private static void assertRow(String msg, Row expected, Row actual)
   {
+    System.out.println(String.format("Matching row [%s] with [%s]", expected, actual));
     // Custom equals check to get fuzzy comparison of numerics, useful because different groupBy strategies don't
     // always generate exactly the same results (different merge ordering / float vs double)
     Assert.assertEquals(

@@ -508,7 +508,62 @@ public class GroupByQueryRunnerTest
         GroupByQueryRunnerTestHelper.createExpectedRow("2011-04-02", "alias", "news", "rows", 1L, "idx", 114L, "idxFloat", 114.290141f, "idxDouble", 114.290141d),
         GroupByQueryRunnerTestHelper.createExpectedRow("2011-04-02", "alias", "premium", "rows", 3L, "idx", 2505L, "idxFloat", 2506.415148f, "idxDouble", 2506.415148d),
         GroupByQueryRunnerTestHelper.createExpectedRow("2011-04-02", "alias", "technology", "rows", 1L, "idx", 97L, "idxFloat", 97.387433f, "idxDouble", 97.387433d),
-        GroupByQueryRunnerTestHelper.createExpectedRow("2011-04-02", "alias", "travel", "rows", 1L, "idx", 126L, "idxFloat", 126.411364f, "idxDouble", 126.411364d)
+        GroupByQueryRunnerTestHelper.createExpectedRow("2011-04-02", "alias", "travel", "rows", 1L, "idx", 126L, "idxFloat", 126.411364f, "idxDouble", 126.411364d),
+
+        GroupByQueryRunnerTestHelper.createExpectedRow("2011-04-01T00:00:00.000Z", "market", "spot", "idxDouble", 643.043177, "idxFloat", 643.043212890625, "rows", 5L, "idx", 640L),
+        GroupByQueryRunnerTestHelper.createExpectedRow("2011-04-01T00:00:00.000Z", "market", "total_market", "idxDouble", 1314.839715, "idxFloat", 1314.8397, "rows", 1L, "idx", 1314L),
+        GroupByQueryRunnerTestHelper.createExpectedRow("2011-04-01T00:00:00.000Z", "market", "upfront", "idxDouble", 1447.34116, "idxFloat", 1447.3412, "rows", 1L, "idx", 1447L),
+        GroupByQueryRunnerTestHelper.createExpectedRow("2011-04-01T00:00:00.000Z", "market", "spot", "idxDouble", 266.090949, "idxFloat", 266.0909423828125, "rows", 2L, "idx", 265L),
+        GroupByQueryRunnerTestHelper.createExpectedRow("2011-04-01T00:00:00.000Z", "market", "total_market", "idxDouble", 1522.043733, "idxFloat", 1522.0437, "rows", 1L, "idx", 1522L),
+        GroupByQueryRunnerTestHelper.createExpectedRow("2011-04-01T00:00:00.000Z", "market", "upfront", "idxDouble", 1234.247546, "idxFloat", 1234.2476, "rows", 1L, "idx", 1234L),
+        GroupByQueryRunnerTestHelper.createExpectedRow("2011-04-01T00:00:00.000Z", "market", "spot", "idxDouble", 198.545289, "idxFloat", 198.5452880859375, "rows", 2L, "idx", 197L),
+
+        GroupByQueryRunnerTestHelper.createExpectedRow("2011-04-02T00:00:00.000Z", "market", "spot", "idxDouble", 650.806953, "idxFloat", 650.8069458007812, "rows", 5L, "idx", 648L),
+        GroupByQueryRunnerTestHelper.createExpectedRow("2011-04-02T00:00:00.000Z", "market", "total_market", "idxDouble", 1193.556278, "idxFloat", 1193.5563, "rows", 1L, "idx", 1193L),
+        GroupByQueryRunnerTestHelper.createExpectedRow("2011-04-02T00:00:00.000Z", "market", "upfront", "idxDouble", 1144.342401, "idxFloat", 1144.3424, "rows", 1L, "idx", 1144L),
+        GroupByQueryRunnerTestHelper.createExpectedRow("2011-04-02T00:00:00.000Z", "market", "spot", "idxDouble", 249.591647, "idxFloat", 249.59164428710938, "rows", 2L, "idx", 249L),
+        GroupByQueryRunnerTestHelper.createExpectedRow("2011-04-02T00:00:00.000Z", "market", "total_market", "idxDouble", 1321.375057, "idxFloat", 1321.375, "rows", 1L, "idx", 1321L),
+        GroupByQueryRunnerTestHelper.createExpectedRow("2011-04-02T00:00:00.000Z", "market", "upfront", "idxDouble", 1049.738585, "idxFloat", 1049.7385, "rows", 1L, "idx", 1049L),
+        GroupByQueryRunnerTestHelper.createExpectedRow("2011-04-02T00:00:00.000Z", "market", "spot", "idxDouble", 223.798797, "idxFloat", 223.79879760742188, "rows", 2L, "idx", 223L),
+
+        GroupByQueryRunnerTestHelper.createExpectedRow("2011-04-01T00:00:00.000Z", "idxDouble", 6626.151575318359, "idxFloat", 6626.152f, "rows", 13L, "idx", 6619L),
+        GroupByQueryRunnerTestHelper.createExpectedRow("2011-04-02T00:00:00.000Z", "idxDouble", 5833.209713, "idxFloat", 5833.209f, "rows", 13L, "idx", 5827L)
+        );
+
+    Iterable<Row> results = GroupByQueryRunnerTestHelper.runQuery(factory, runner, query);
+    TestHelper.assertExpectedObjects(expectedResults, results, "");
+  }
+
+  @Test
+  public void testGroupByWithSubtotalsSpecWithOrderLimit()
+  {
+    GroupByQuery query = GroupByQuery
+        .builder()
+        .setDataSource(QueryRunnerTestHelper.dataSource)
+        .setQuerySegmentSpec(QueryRunnerTestHelper.firstToThird)
+        .setDimensions(Lists.<DimensionSpec>newArrayList(new DefaultDimensionSpec("quality", "alias"), new DefaultDimensionSpec("market", "market")))
+        .setAggregatorSpecs(
+            Arrays.asList(
+                QueryRunnerTestHelper.rowsCount,
+                new LongSumAggregatorFactory("idx", "index"),
+                new FloatSumAggregatorFactory("idxFloat", "indexFloat"),
+                new DoubleSumAggregatorFactory("idxDouble", "index")
+            )
+        )
+        .setGranularity(QueryRunnerTestHelper.dayGran)
+        .setSubtotalsSpec(ImmutableList.of(
+            ImmutableList.of("alias"),
+            ImmutableList.of("market"),
+            ImmutableList.of()
+        ))
+        .addOrderByColumn("idxDouble")
+        .setLimit(1)
+        .build();
+
+    List<Row> expectedResults = Arrays.asList(
+        GroupByQueryRunnerTestHelper.createExpectedRow("2011-04-01", "alias", "technology", "rows", 1L, "idx", 78L, "idxFloat", 78.622547f, "idxDouble", 78.622547d),
+        GroupByQueryRunnerTestHelper.createExpectedRow("2011-04-01T00:00:00.000Z", "market", "spot", "idxDouble", 198.545289, "idxFloat", 198.5452880859375, "rows", 2L, "idx", 197L),
+        GroupByQueryRunnerTestHelper.createExpectedRow("2011-04-01T00:00:00.000Z", "idxDouble", 6626.151575318359, "idxFloat", 6626.152f, "rows", 13L, "idx", 6619L)
     );
 
     Iterable<Row> results = GroupByQueryRunnerTestHelper.runQuery(factory, runner, query);

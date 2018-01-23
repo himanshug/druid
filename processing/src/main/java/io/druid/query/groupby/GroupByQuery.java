@@ -212,7 +212,7 @@ public class GroupByQuery extends BaseQuery<Row>
             }
           }
           if (!found) {
-            throw new IAE("Subtotal spec %s is either not a subset or items are in different order than in dimensiosn spec.");
+            throw new IAE("Subtotal spec %s is either not a subset or items are in different order than in dimensiosn spec.", subtotalSpec);
           }
         }
       }
@@ -690,6 +690,11 @@ public class GroupByQuery extends BaseQuery<Row>
   public GroupByQuery withAggregatorSpecs(final List<AggregatorFactory> aggregatorSpecs)
   {
     return new Builder(this).setAggregatorSpecs(aggregatorSpecs).build();
+  }
+
+  public GroupByQuery withSubtotalsSpec(final List<List<String>> subtotalsSpec)
+  {
+    return new Builder(this).setSubtotalsSpec(subtotalsSpec).build();
   }
 
   public GroupByQuery withPostAggregatorSpecs(final List<PostAggregator> postAggregatorSpecs)
