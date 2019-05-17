@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  annotations:
+    control-plane.alpha.kubernetes.io/leader: '{"holderIdentity":"druid-leader-1","leaseDurationSeconds":10,"acquireTime":"20191217T115315.654-0800","renewTime":"20191217T115523.626-0800","leaderTransitions":1}'
+  creationTimestamp: "2019-09-09T16:40:57Z"
+  name: druid-leader-election
+  namespace: cja-dev
+  resourceVersion: "258541478"
+  selfLink: /api/v1/namespaces/cja-dev/configmaps/druid-leader-election
+  uid: 9960fbdf-d320-11e9-94ea-0a792a5c16b6
