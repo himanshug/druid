@@ -22,6 +22,9 @@ package org.apache.druid.query.aggregation;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
+import org.apache.druid.math.expr.Expr;
 import org.apache.druid.math.expr.ExprMacroTable;
 import org.apache.druid.math.expr.Parser;
 import org.apache.druid.segment.BaseLongColumnValueSelector;
@@ -40,6 +43,8 @@ public abstract class SimpleLongAggregatorFactory extends NullableAggregatorFact
   protected final String fieldName;
   @Nullable
   protected final String expression;
+  @Nullable
+  protected final Supplier<Expr> parsedExpressionSupplier;
   protected final ExprMacroTable macroTable;
 
   public SimpleLongAggregatorFactory(
@@ -58,15 +63,20 @@ public abstract class SimpleLongAggregatorFactory extends NullableAggregatorFact
         fieldName == null ^ expression == null,
         "Must have a valid, non-null fieldName or expression"
     );
+
+    if (expression == null) {
+      parsedExpressionSupplier = null;
+    } else {
+      parsedExpressionSupplier = Suppliers.memoize(() -> Parser.parse(expression, macroTable));
+    }
   }
 
   BaseLongColumnValueSelector getLongColumnSelector(ColumnSelectorFactory metricFactory, long nullValue)
   {
     return AggregatorUtil.makeColumnValueSelectorWithLongDefault(
         metricFactory,
-        macroTable,
         fieldName,
-        expression,
+        parsedExpressionSupplier.get(),
         nullValue
     );
   }

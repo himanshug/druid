@@ -234,9 +234,8 @@ public class AggregatorUtil
    */
   static BaseFloatColumnValueSelector makeColumnValueSelectorWithFloatDefault(
       final ColumnSelectorFactory metricFactory,
-      final ExprMacroTable macroTable,
       @Nullable final String fieldName,
-      @Nullable final String fieldExpression,
+      @Nullable final Expr fieldExpression,
       final float nullValue
   )
   {
@@ -246,8 +245,7 @@ public class AggregatorUtil
     if (fieldName != null) {
       return metricFactory.makeColumnValueSelector(fieldName);
     } else {
-      final Expr expr = parseIfAbsent(fieldExpression, macroTable);
-      final ColumnValueSelector<ExprEval> baseSelector = ExpressionSelectors.makeExprEvalSelector(metricFactory, expr);
+      final ColumnValueSelector<ExprEval> baseSelector = ExpressionSelectors.makeExprEvalSelector(metricFactory, fieldExpression);
       class ExpressionFloatColumnSelector implements FloatColumnSelector
       {
         @Override
@@ -281,9 +279,8 @@ public class AggregatorUtil
    */
   static BaseLongColumnValueSelector makeColumnValueSelectorWithLongDefault(
       final ColumnSelectorFactory metricFactory,
-      final ExprMacroTable macroTable,
       @Nullable final String fieldName,
-      @Nullable final String fieldExpression,
+      @Nullable final Expr fieldExpression,
       final long nullValue
   )
   {
@@ -293,8 +290,7 @@ public class AggregatorUtil
     if (fieldName != null) {
       return metricFactory.makeColumnValueSelector(fieldName);
     } else {
-      final Expr expr = parseIfAbsent(fieldExpression, macroTable);
-      final ColumnValueSelector<ExprEval> baseSelector = ExpressionSelectors.makeExprEvalSelector(metricFactory, expr);
+      final ColumnValueSelector<ExprEval> baseSelector = ExpressionSelectors.makeExprEvalSelector(metricFactory, fieldExpression);
       class ExpressionLongColumnSelector implements LongColumnSelector
       {
         @Override
@@ -326,9 +322,8 @@ public class AggregatorUtil
    */
   static BaseDoubleColumnValueSelector makeColumnValueSelectorWithDoubleDefault(
       final ColumnSelectorFactory metricFactory,
-      final ExprMacroTable macroTable,
       @Nullable final String fieldName,
-      @Nullable final String fieldExpression,
+      @Nullable final Expr fieldExpression,
       final double nullValue
   )
   {
@@ -338,8 +333,7 @@ public class AggregatorUtil
     if (fieldName != null) {
       return metricFactory.makeColumnValueSelector(fieldName);
     } else {
-      final Expr expr = parseIfAbsent(fieldExpression, macroTable);
-      final ColumnValueSelector<ExprEval> baseSelector = ExpressionSelectors.makeExprEvalSelector(metricFactory, expr);
+      final ColumnValueSelector<ExprEval> baseSelector = ExpressionSelectors.makeExprEvalSelector(metricFactory, fieldExpression);
       class ExpressionDoubleColumnSelector implements DoubleColumnSelector
       {
         @Override
