@@ -228,7 +228,7 @@ public class OnheapIncrementalIndex extends IncrementalIndex<Aggregator>
     rowContainer.set(row);
     for (int i = 0; i < metrics.length; i++) {
       final AggregatorFactory agg = metrics[i];
-      aggs[i] = agg.factorize(selectors.get(agg.getName()));
+      aggs[i] = agg.factorize(selectors.get(agg.getName()), isConcurrent);
     }
     rowContainer.set(null);
   }

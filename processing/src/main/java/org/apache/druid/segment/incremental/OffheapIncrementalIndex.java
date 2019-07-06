@@ -167,7 +167,7 @@ public class OffheapIncrementalIndex extends IncrementalIndex<BufferAggregator>
           rowContainer.set(row);
           for (int i = 0; i < metrics.length; i++) {
             final AggregatorFactory agg = metrics[i];
-            getAggs()[i] = agg.factorizeBuffered(selectors.get(agg.getName()));
+            getAggs()[i] = agg.factorizeBuffered(selectors.get(agg.getName()), isConcurrent);
           }
           rowContainer.set(null);
         }

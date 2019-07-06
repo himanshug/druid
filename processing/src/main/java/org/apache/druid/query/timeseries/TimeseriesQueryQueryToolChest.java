@@ -221,7 +221,7 @@ public class TimeseriesQueryQueryToolChest extends QueryToolChest<Result<Timeser
                                       .factorize(RowBasedColumnSelectorFactory.create(() -> new MapBasedRow(
                                           null,
                                           null
-                                      ), null));
+                                      ), null), false);
       aggregatorNames[i] = aggregatorSpecs.get(i).getName();
     }
     final DateTime start = query.getIntervals().isEmpty() ? DateTimes.EPOCH : query.getIntervals().get(0).getStart();

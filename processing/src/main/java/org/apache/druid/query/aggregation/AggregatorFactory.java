@@ -45,9 +45,25 @@ public abstract class AggregatorFactory implements Cacheable
 {
   private static final Logger log = new Logger(AggregatorFactory.class);
 
-  public abstract Aggregator factorize(ColumnSelectorFactory metricFactory);
+  public Aggregator factorize(ColumnSelectorFactory metricFactory)
+  {
+    throw new UnsupportedOperationException("not implemented");
+  }
 
-  public abstract BufferAggregator factorizeBuffered(ColumnSelectorFactory metricFactory);
+  public BufferAggregator factorizeBuffered(ColumnSelectorFactory metricFactory)
+  {
+    throw new UnsupportedOperationException("not implemented");
+  }
+
+  public Aggregator factorize(ColumnSelectorFactory metricFactory, boolean isConcurrent)
+  {
+    return factorize(metricFactory);
+  }
+
+  public BufferAggregator factorizeBuffered(ColumnSelectorFactory metricFactory, boolean isConcurrent)
+  {
+    return factorizeBuffered(metricFactory);
+  }
 
   public abstract Comparator getComparator();
 

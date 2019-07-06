@@ -79,7 +79,7 @@ public class TimeseriesQueryEngine
             String[] aggregatorNames = new String[aggregatorSpecs.size()];
 
             for (int i = 0; i < aggregatorSpecs.size(); i++) {
-              aggregators[i] = aggregatorSpecs.get(i).factorize(cursor.getColumnSelectorFactory());
+              aggregators[i] = aggregatorSpecs.get(i).factorize(cursor.getColumnSelectorFactory(), false);
               aggregatorNames[i] = aggregatorSpecs.get(i).getName();
             }
 

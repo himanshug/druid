@@ -89,7 +89,7 @@ public class MovingAverageIterable implements Iterable<Row>
   {
     Map<String, Object> emptyEvents = new LinkedHashMap<>();
     aggMap.values().forEach(agg -> {
-      Aggregator aggFactorized = agg.factorize(getEmptyColumnSelectorFactory());
+      Aggregator aggFactorized = agg.factorize(getEmptyColumnSelectorFactory(), false);
       emptyEvents.put(agg.getName(), aggFactorized.get());
     });
     postAggMap.values().forEach(postAgg -> emptyEvents.put(postAgg.getName(), postAgg.compute(emptyEvents)));

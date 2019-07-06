@@ -51,15 +51,15 @@ public class SuppressedAggregatorFactory extends AggregatorFactory
   }
 
   @Override
-  public Aggregator factorize(ColumnSelectorFactory metricFactory)
+  public Aggregator factorize(ColumnSelectorFactory metricFactory, boolean isConcurrent)
   {
-    return new SuppressedAggregator(delegate.factorize(metricFactory));
+    return new SuppressedAggregator(delegate.factorize(metricFactory, isConcurrent));
   }
 
   @Override
-  public BufferAggregator factorizeBuffered(ColumnSelectorFactory metricFactory)
+  public BufferAggregator factorizeBuffered(ColumnSelectorFactory metricFactory, boolean isConcurrent)
   {
-    return new SuppressedBufferAggregator(delegate.factorizeBuffered(metricFactory));
+    return new SuppressedBufferAggregator(delegate.factorizeBuffered(metricFactory, isConcurrent));
   }
 
   @Override

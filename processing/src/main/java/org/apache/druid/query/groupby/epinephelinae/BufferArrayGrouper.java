@@ -101,7 +101,7 @@ public class BufferArrayGrouper implements IntGrouper
 
     int offset = 0;
     for (int i = 0; i < aggregatorFactories.length; i++) {
-      aggregators[i] = aggregatorFactories[i].factorizeBuffered(columnSelectorFactory);
+      aggregators[i] = aggregatorFactories[i].factorizeBuffered(columnSelectorFactory, false);
       aggregatorOffsets[i] = offset;
       offset += aggregatorFactories[i].getMaxIntermediateSizeWithNulls();
     }

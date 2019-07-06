@@ -345,7 +345,7 @@ public class GroupByQueryEngine
       sizesRequired = new int[aggregatorSpecs.size()];
       for (int i = 0; i < aggregatorSpecs.size(); ++i) {
         AggregatorFactory aggregatorSpec = aggregatorSpecs.get(i);
-        aggregators[i] = aggregatorSpec.factorizeBuffered(cursor.getColumnSelectorFactory());
+        aggregators[i] = aggregatorSpec.factorizeBuffered(cursor.getColumnSelectorFactory(), false);
         metricNames[i] = aggregatorSpec.getName();
         sizesRequired[i] = aggregatorSpec.getMaxIntermediateSizeWithNulls();
       }

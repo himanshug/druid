@@ -70,22 +70,22 @@ public class FilteredAggregatorFactory extends AggregatorFactory
   }
 
   @Override
-  public Aggregator factorize(ColumnSelectorFactory columnSelectorFactory)
+  public Aggregator factorize(ColumnSelectorFactory columnSelectorFactory, boolean isConcurrent)
   {
     final ValueMatcher valueMatcher = Filters.toFilter(filter).makeMatcher(columnSelectorFactory);
     return new FilteredAggregator(
         valueMatcher,
-        delegate.factorize(columnSelectorFactory)
+        delegate.factorize(columnSelectorFactory, isConcurrent)
     );
   }
 
   @Override
-  public BufferAggregator factorizeBuffered(ColumnSelectorFactory columnSelectorFactory)
+  public BufferAggregator factorizeBuffered(ColumnSelectorFactory columnSelectorFactory, boolean isConcurrent)
   {
     final ValueMatcher valueMatcher = Filters.toFilter(filter).makeMatcher(columnSelectorFactory);
     return new FilteredBufferAggregator(
         valueMatcher,
-        delegate.factorizeBuffered(columnSelectorFactory)
+        delegate.factorizeBuffered(columnSelectorFactory, isConcurrent)
     );
   }
 
