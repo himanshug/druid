@@ -64,7 +64,8 @@ public class OnheapIncrementalIndex extends IncrementalIndex<BufferAggregator>
   protected final int maxRowCount;
   protected final long maxBytesInMemory;
   private final MemoryAllocator memoryAllocator = new SimpleOnHeapMemoryAllocator();
-
+  
+  @Nullable
   private String outOfRowsReason = null;
 
   OnheapIncrementalIndex(
