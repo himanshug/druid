@@ -443,6 +443,23 @@ public abstract class IncrementalIndex<AggregatorType> extends AbstractIndex imp
       );
     }
 
+    public IncrementalIndex buildOnheapV0()
+    {
+      if (maxRowCount <= 0) {
+        throw new IllegalArgumentException("Invalid max row count: " + maxRowCount);
+      }
+
+      return new OnheapIncrementalIndexV0(
+          Objects.requireNonNull(incrementalIndexSchema, "incrementIndexSchema is null"),
+          deserializeComplexMetrics,
+          reportParseExceptions,
+          concurrentEventAdd,
+          sortFacts,
+          maxRowCount,
+          maxBytesInMemory
+      );
+    }
+
     public IncrementalIndex buildOffheap(final NonBlockingPool<ByteBuffer> bufferPool)
     {
       if (maxRowCount <= 0) {

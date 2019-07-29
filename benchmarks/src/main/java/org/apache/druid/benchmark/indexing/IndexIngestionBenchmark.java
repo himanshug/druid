@@ -47,8 +47,8 @@ import java.util.concurrent.TimeUnit;
 
 @State(Scope.Benchmark)
 @Fork(value = 1)
-@Warmup(iterations = 10)
-@Measurement(iterations = 25)
+@Warmup(iterations = 3)
+@Measurement(iterations = 5)
 public class IndexIngestionBenchmark
 {
   @Param({"75000"})
@@ -108,7 +108,7 @@ public class IndexIngestionBenchmark
         )
         .setReportParseExceptions(false)
         .setMaxRowCount(rowsPerSegment * 2)
-        .buildOnheap();
+        .buildOnheapV0();
   }
 
   @Benchmark
