@@ -83,6 +83,7 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -496,7 +497,32 @@ public class HttpRemoteTaskRunner implements WorkerTaskRunner, TaskLogStreamer
 
       WorkerHolder holder = workers.get(worker.getHost());
       if (holder == null) {
-        holder = createWorkerHolder(smileMapper, httpClient, config, workersSyncExec, this::taskAddedOrUpdated, worker);
+        List<TaskAnnouncement> expectedAnnouncements = new ArrayList<>();
+        synchronized (statusLock) {
+          for (Map.Entry<String, HttpRemoteTaskRunnerWorkItem> e : tasks.entrySet()) {
+            if (e.getValue().getState() == HttpRemoteTaskRunnerWorkItem.State.RUNNING) {
+              Worker w = e.getValue().getWorker();
+              if (w != null && w.getHost().equals(worker.getHost())) {
+                expectedAnnouncements.add(
+                    TaskAnnouncement.create(
+                        e.getValue().getTask(),
+                        TaskStatus.running(e.getKey()),
+                        e.getValue().getLocation()
+                    )
+                );
+              }
+            }
+          }
+        }
+        holder = createWorkerHolder(
+            smileMapper,
+            httpClient,
+            config,
+            workersSyncExec,
+            this::taskAddedOrUpdated,
+            worker,
+            expectedAnnouncements
+        );
         holder.start();
         workers.put(worker.getHost(), holder);
       } else {
@@ -515,10 +541,11 @@ public class HttpRemoteTaskRunner implements WorkerTaskRunner, TaskLogStreamer
       HttpRemoteTaskRunnerConfig config,
       ScheduledExecutorService workersSyncExec,
       WorkerHolder.Listener listener,
-      Worker worker
+      Worker worker,
+      List<TaskAnnouncement> knownAnnouncements
   )
   {
-    return new WorkerHolder(smileMapper, httpClient, config, workersSyncExec, listener, worker);
+    return new WorkerHolder(smileMapper, httpClient, config, workersSyncExec, listener, worker, knownAnnouncements);
   }
 
   private void removeWorker(final Worker worker)
