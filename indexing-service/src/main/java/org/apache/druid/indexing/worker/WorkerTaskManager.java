@@ -135,6 +135,7 @@ public abstract class WorkerTaskManager
         restoreRestorableTasks();
         initAssignedTasks();
         initCompletedTasks();
+        cleanupRunningTaskDir();
         scheduleCompletedTasksCleanup();
         lifecycleLock.started();
         log.info("Started.");
@@ -322,6 +323,11 @@ public abstract class WorkerTaskManager
     return new File(taskConfig.getBaseTaskDir(), "assignedTasks");
   }
 
+  public File getRunningTaskDir()
+  {
+    return new File(taskConfig.getBaseTaskDir(), "runningTasks");
+  }
+
   private void initAssignedTasks()
   {
     File assignedTaskDir = getAssignedTaskDir();
@@ -355,15 +361,22 @@ public abstract class WorkerTaskManager
     }
   }
 
-  private void cleanupAssignedTask(Task task)
+  private void moveTaskFromAssignedToRunningDir(Task task)
   {
     assignedTasks.remove(task.getId());
-    File taskFile = new File(getAssignedTaskDir(), task.getId());
+    File fromFile = new File(getAssignedTaskDir(), task.getId());
+    File toFile = new File(getRunningTaskDir(), task.getId());
     try {
-      Files.delete(taskFile.toPath());
+      Files.move(fromFile.toPath(), toFile.toPath());
     }
     catch (IOException ex) {
-      log.error(ex, "Failed to delete assigned task from disk at [%s].", taskFile);
+      log.error(
+          ex,
+          "Failed to move task[%s] from assigned[%s] to running[%s] dir.",
+          task.getId(),
+          fromFile.getAbsolutePath(),
+          toFile.getAbsolutePath()
+      );
     }
   }
 
@@ -432,6 +445,7 @@ public abstract class WorkerTaskManager
             return null;
           }
         );
+        Files.deleteIfExists(new File(getRunningTaskDir(), taskId).toPath());
       }
       catch (IOException ex) {
         log.error(ex, "Error while trying to persist completed task[%s] announcement.", taskId);
@@ -637,7 +651,7 @@ public abstract class WorkerTaskManager
 
         changeHistory.addChangeRequest(new WorkerHistoryItem.TaskUpdate(announcement));
 
-        cleanupAssignedTask(task);
+        moveTaskFromAssignedToRunningDir(task);
         log.info("Task[%s] started.", task.getId());
       }
 
