@@ -33,6 +33,9 @@ import org.apache.druid.segment.ColumnValueSelector;
 import org.apache.druid.segment.column.ColumnCapabilities;
 import org.apache.druid.segment.column.ColumnHolder;
 import org.apache.druid.segment.column.ValueType;
+import org.apache.druid.segment.vector.VectorColumnSelectorFactory;
+import org.apache.druid.segment.vector.VectorObjectDoubleAdapter;
+import org.apache.druid.segment.vector.VectorValueSelector;
 
 import javax.annotation.Nullable;
 import java.util.Collections;
@@ -109,6 +112,15 @@ public abstract class SimpleDoubleAggregatorFactory extends NullableAggregatorFa
   }
 
   @Override
+  protected VectorAggregator factorizeVector(
+      VectorColumnSelectorFactory columnSelectorFactory,
+      VectorValueSelector selector
+  )
+  {
+    return SimpleDoubleAggregatorFactory.this.buildVectorAggregator(selector);
+  }
+
+  @Override
   protected ColumnValueSelector selector(ColumnSelectorFactory metricFactory)
   {
     return AggregatorUtil.makeColumnValueSelectorWithDoubleDefault(
@@ -119,13 +131,30 @@ public abstract class SimpleDoubleAggregatorFactory extends NullableAggregatorFa
     );
   }
 
+  @Override
+  protected VectorValueSelector vectorSelector(VectorColumnSelectorFactory columnSelectorFactory)
+  {
+    if (isStringColumn(columnSelectorFactory.getColumnCapabilities(fieldName))) {
+      return new VectorObjectDoubleAdapter(columnSelectorFactory.makeObjectSelector(fieldName), nullValue());
+    } else {
+      return columnSelectorFactory.makeValueSelector(fieldName);
+    }
+  }
+
   private boolean shouldUseStringColumnAggregatorWrapper(ColumnSelectorFactory columnSelectorFactory)
   {
-    if (fieldName != null) {
-      ColumnCapabilities capabilities = columnSelectorFactory.getColumnCapabilities(fieldName);
-      return capabilities != null && capabilities.getType() == ValueType.STRING;
-    }
-    return false;
+    return fieldName != null && isStringColumn(columnSelectorFactory.getColumnCapabilities(fieldName));
+  }
+
+  private boolean isStringColumn(@Nullable ColumnCapabilities capabilities)
+  {
+    return capabilities != null && capabilities.getType() == ValueType.STRING;
+  }
+
+  @Override
+  public boolean canVectorize()
+  {
+    return expression == null;
   }
 
   @Override
@@ -240,4 +269,6 @@ public abstract class SimpleDoubleAggregatorFactory extends NullableAggregatorFa
   protected abstract Aggregator buildAggregator(BaseDoubleColumnValueSelector selector);
 
   protected abstract BufferAggregator buildBufferAggregator(BaseDoubleColumnValueSelector selector);
+
+  protected abstract VectorAggregator buildVectorAggregator(VectorValueSelector selector);
 }

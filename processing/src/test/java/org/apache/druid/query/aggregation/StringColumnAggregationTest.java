@@ -54,6 +54,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+/**
+ * Unit Tests for string column handling by double/floag/long min/max/sum aggregation.
+ */
 public class StringColumnAggregationTest
 {
   @Rule
@@ -196,6 +199,25 @@ public class StringColumnAggregationTest
     Assert.assertEquals((long) multiValueMax, result.getMetric("multiLongMax").longValue());
     Assert.assertEquals((long) singleValueMin, result.getMetric("singleLongMin").longValue());
     Assert.assertEquals((long) multiValueMin, result.getMetric("multiLongMin").longValue());
+  }
+
+  @Test
+  public void testGroupByWithVectorization()
+  {
+    GroupByQuery query = new GroupByQuery.Builder()
+        .setDataSource("test")
+        .setGranularity(Granularities.ALL)
+        .setInterval("1970/2050")
+        .setAggregatorSpecs(
+            new DoubleSumAggregatorFactory("singleDoubleSum", singleValue)
+        )
+        .setContext(ImmutableMap.of(GroupByQueryConfig.CTX_KEY_VECTORIZE, true))
+        .build();
+
+    Sequence<ResultRow> seq = aggregationTestHelper.runQueryOnSegmentsObjs(segments, query);
+    Row result = Iterables.getOnlyElement(seq.toList()).toMapBasedRow(query);
+
+    Assert.assertEquals(singleValueSum, result.getMetric("singleDoubleSum").doubleValue(), 0.0001d);
   }
 
   @Test

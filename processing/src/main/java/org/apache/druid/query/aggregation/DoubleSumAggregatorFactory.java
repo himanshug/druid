@@ -71,24 +71,8 @@ public class DoubleSumAggregatorFactory extends SimpleDoubleAggregatorFactory
     return new DoubleSumBufferAggregator(selector);
   }
 
-
   @Override
-  protected VectorValueSelector vectorSelector(VectorColumnSelectorFactory columnSelectorFactory)
-  {
-    return columnSelectorFactory.makeValueSelector(fieldName);
-  }
-
-  @Override
-  public boolean canVectorize()
-  {
-    return expression == null;
-  }
-
-  @Override
-  protected VectorAggregator factorizeVector(
-      VectorColumnSelectorFactory columnSelectorFactory,
-      VectorValueSelector selector
-  )
+  protected VectorAggregator buildVectorAggregator(VectorValueSelector selector)
   {
     return new DoubleSumVectorAggregator(selector);
   }
