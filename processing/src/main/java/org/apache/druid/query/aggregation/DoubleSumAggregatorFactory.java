@@ -25,10 +25,15 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import org.apache.druid.java.util.common.StringUtils;
 import org.apache.druid.math.expr.ExprMacroTable;
 import org.apache.druid.segment.BaseDoubleColumnValueSelector;
+import org.apache.druid.segment.Capabilities;
+import org.apache.druid.segment.column.ColumnCapabilities;
+import org.apache.druid.segment.column.ValueType;
 import org.apache.druid.segment.vector.VectorColumnSelectorFactory;
+import org.apache.druid.segment.vector.VectorObjectDoubleAdapter;
 import org.apache.druid.segment.vector.VectorValueSelector;
 
 import javax.annotation.Nullable;
+import javax.validation.constraints.Null;
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.List;
@@ -75,13 +80,22 @@ public class DoubleSumAggregatorFactory extends SimpleDoubleAggregatorFactory
   @Override
   protected VectorValueSelector vectorSelector(VectorColumnSelectorFactory columnSelectorFactory)
   {
-    return columnSelectorFactory.makeValueSelector(fieldName);
+    if (isStringColumn(columnSelectorFactory.getColumnCapabilities(fieldName))) {
+      return new VectorObjectDoubleAdapter(columnSelectorFactory.makeObjectSelector(fieldName), nullValue());
+    } else {
+      return columnSelectorFactory.makeValueSelector(fieldName);
+    }
   }
 
   @Override
   public boolean canVectorize()
   {
     return expression == null;
+  }
+
+  private boolean isStringColumn(@Nullable ColumnCapabilities capabilities)
+  {
+    return capabilities != null && capabilities.getType() == ValueType.STRING;
   }
 
   @Override
