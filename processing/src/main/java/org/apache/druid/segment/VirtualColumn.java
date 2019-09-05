@@ -30,6 +30,7 @@ import org.apache.druid.segment.virtual.ExpressionVirtualColumn;
 
 import javax.annotation.Nullable;
 import java.util.List;
+import java.util.function.Function;
 
 /**
  * Virtual columns are "views" created over a ColumnSelectorFactory or ColumnSelector. They can potentially draw from multiple
@@ -120,10 +121,11 @@ public interface VirtualColumn extends Cacheable
    * dot notation.
    *
    * @param columnName the name this virtual column was referenced with
+   * @param columnCapabilities ColumnCapabilities of other columns in the index
    *
    * @return capabilities, must not be null
    */
-  ColumnCapabilities capabilities(String columnName);
+  ColumnCapabilities capabilities(String columnName, Function<String, ColumnCapabilities> columnCapabilities);
 
   /**
    * Returns a list of columns that this virtual column will access. This may include the

@@ -57,6 +57,7 @@ import org.junit.rules.ExpectedException;
 import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Function;
 
 public class VirtualColumnsTest
 {
@@ -414,7 +415,7 @@ public class VirtualColumnsTest
     }
 
     @Override
-    public ColumnCapabilities capabilities(String columnName)
+    public ColumnCapabilities capabilities(String columnName,  Function<String, ColumnCapabilities> columnCapabilities)
     {
       return new ColumnCapabilitiesImpl().setType(ValueType.LONG);
     }

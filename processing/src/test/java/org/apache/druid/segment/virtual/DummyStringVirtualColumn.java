@@ -45,6 +45,7 @@ import org.apache.druid.segment.data.ReadableOffset;
 import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Function;
 
 /**
  * A String column like VirtualColumn to test drive VirtualColumn interface.
@@ -181,7 +182,7 @@ public class DummyStringVirtualColumn implements VirtualColumn
   }
 
   @Override
-  public ColumnCapabilities capabilities(String columnName)
+  public ColumnCapabilities capabilities(String columnName,  Function<String, ColumnCapabilities> columnCapabilities)
   {
     ColumnCapabilitiesImpl capabilities = new ColumnCapabilitiesImpl().setType(ValueType.STRING)
                                                                       .setDictionaryEncoded(true);

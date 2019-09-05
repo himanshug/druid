@@ -40,6 +40,7 @@ import org.apache.druid.segment.column.ValueType;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Function;
 
 public class ExpressionVirtualColumn implements VirtualColumn
 {
@@ -103,7 +104,7 @@ public class ExpressionVirtualColumn implements VirtualColumn
   }
 
   @Override
-  public ColumnCapabilities capabilities(String columnName)
+  public ColumnCapabilities capabilities(String columnName,  Function<String, ColumnCapabilities> columnCapabilities)
   {
     // Note: Ideally we would only "setHasMultipleValues(true)" if the expression in question could potentially return
     // multiple values. However, we don't currently have a good way of determining this, so to be safe we always

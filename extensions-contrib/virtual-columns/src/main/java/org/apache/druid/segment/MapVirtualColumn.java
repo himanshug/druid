@@ -39,6 +39,7 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
 
 /**
  */
@@ -171,7 +172,7 @@ public class MapVirtualColumn implements VirtualColumn
   }
 
   @Override
-  public ColumnCapabilities capabilities(String columnName)
+  public ColumnCapabilities capabilities(String columnName, Function<String, ColumnCapabilities> columnCapabilities)
   {
     final ValueType valueType = columnName.indexOf('.') < 0 ? ValueType.COMPLEX : ValueType.STRING;
     return new ColumnCapabilitiesImpl().setType(valueType);

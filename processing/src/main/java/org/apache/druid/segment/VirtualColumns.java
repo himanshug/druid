@@ -42,6 +42,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 
 /**
  * Class allowing lookup and usage of virtual columns.
@@ -226,12 +227,12 @@ public class VirtualColumns implements Cacheable
     }
   }
 
-  public ColumnCapabilities getColumnCapabilities(String columnName)
+  public ColumnCapabilities getColumnCapabilities(String columnName, Function<String, ColumnCapabilities> columnCapabilities)
   {
     final VirtualColumn virtualColumn = getVirtualColumn(columnName);
     if (virtualColumn != null) {
       return Preconditions.checkNotNull(
-          virtualColumn.capabilities(columnName),
+          virtualColumn.capabilities(columnName, columnCapabilities),
           "capabilities for column[%s]",
           columnName
       );
@@ -240,9 +241,9 @@ public class VirtualColumns implements Cacheable
     }
   }
 
-  public ColumnCapabilities getColumnCapabilitiesWithFallback(StorageAdapter adapter, String columnName)
+  public ColumnCapabilities getColumnCapabilitiesWithFallback(StorageAdapter adapter, String columnName, Function<String, ColumnCapabilities> columnCapabilities)
   {
-    final ColumnCapabilities virtualColumnCapabilities = getColumnCapabilities(columnName);
+    final ColumnCapabilities virtualColumnCapabilities = getColumnCapabilities(columnName, columnCapabilities);
     if (virtualColumnCapabilities != null) {
       return virtualColumnCapabilities;
     } else {
