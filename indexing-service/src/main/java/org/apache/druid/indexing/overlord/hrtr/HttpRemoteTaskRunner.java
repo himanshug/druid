@@ -46,6 +46,7 @@ import org.apache.druid.indexer.RunnerTaskState;
 import org.apache.druid.indexer.TaskLocation;
 import org.apache.druid.indexer.TaskStatus;
 import org.apache.druid.indexing.common.task.Task;
+import org.apache.druid.indexing.common.task.batch.parallel.ParallelIndexSupervisorTask;
 import org.apache.druid.indexing.overlord.ImmutableWorkerInfo;
 import org.apache.druid.indexing.overlord.RemoteTaskRunnerWorkItem;
 import org.apache.druid.indexing.overlord.TaskRunnerListener;
@@ -125,6 +126,7 @@ public class HttpRemoteTaskRunner implements WorkerTaskRunner, TaskLogStreamer
 
   // Executor for assigning pending tasks to workers.
   private final ExecutorService pendingTasksExec;
+  private final ExecutorService supervisorPendingTasksExec;
 
   // All known tasks
   private final ConcurrentMap<String, HttpRemoteTaskRunnerWorkItem> tasks = new ConcurrentHashMap<>();
@@ -197,6 +199,11 @@ public class HttpRemoteTaskRunner implements WorkerTaskRunner, TaskLogStreamer
     this.pendingTasksExec = Execs.multiThreaded(
         config.getPendingTasksRunnerNumThreads(),
         "hrtr-pending-tasks-runner-%d"
+    );
+
+    this.supervisorPendingTasksExec = Execs.multiThreaded(
+        config.getPendingTasksRunnerNumThreads(),
+        "hrtr-supervisor-pending-tasks-runner-%d"
     );
 
     this.workersSyncExec = ScheduledExecutors.fixed(
@@ -330,7 +337,8 @@ public class HttpRemoteTaskRunner implements WorkerTaskRunner, TaskLogStreamer
             Maps.transformEntries(
                 Maps.filterEntries(
                     workers,
-                    input -> !lazyWorkers.containsKey(input.getKey()) &&
+                    input -> ParallelIndexSupervisorTask.TYPE.equals(task.getType()) ? input.getKey().contains("supervisor") : !input.getKey().contains("supervisor") &&
+                           !lazyWorkers.containsKey(input.getKey()) &&
                            !workersWithUnacknowledgedTask.containsKey(input.getKey()) &&
                            !blackListedWorkers.containsKey(input.getKey())
                 ),
@@ -974,15 +982,24 @@ public class HttpRemoteTaskRunner implements WorkerTaskRunner, TaskLogStreamer
             HttpRemoteTaskRunnerWorkItem.State.PENDING
         );
         tasks.put(task.getId(), taskRunnerWorkItem);
-        addPendingTaskToExecutor(task.getId());
+        addPendingTaskToExecutor(task);
         return taskRunnerWorkItem.getResult();
       }
     }
   }
 
-  private void addPendingTaskToExecutor(final String taskId)
+  private void addPendingTaskToExecutor(final Task task)
   {
-    pendingTasksExec.execute(
+    if (ParallelIndexSupervisorTask.TYPE.equals(task.getType())) {
+      addPendingTaskToExecutor(task.getId(), supervisorPendingTasksExec);
+    } else {
+      addPendingTaskToExecutor(task.getId(), pendingTasksExec);
+    }
+  }
+  
+  private void addPendingTaskToExecutor(final String taskId, final ExecutorService exec)
+  {
+    exec.execute(
         () -> {
           while (!Thread.interrupted() && lifecycleLock.awaitStarted(1, TimeUnit.MILLISECONDS)) {
             ImmutableWorkerInfo immutableWorker;
@@ -1109,6 +1126,7 @@ public class HttpRemoteTaskRunner implements WorkerTaskRunner, TaskLogStreamer
     log.info("Stopping...");
 
     pendingTasksExec.shutdownNow();
+    supervisorPendingTasksExec.shutdownNow();
     workersSyncExec.shutdownNow();
     cleanupExec.shutdown();
 
