@@ -48,6 +48,7 @@ import org.apache.druid.indexer.RunnerTaskState;
 import org.apache.druid.indexer.TaskLocation;
 import org.apache.druid.indexer.TaskStatus;
 import org.apache.druid.indexing.common.task.Task;
+import org.apache.druid.indexing.common.task.batch.parallel.ParallelIndexSupervisorTask;
 import org.apache.druid.indexing.overlord.ImmutableWorkerInfo;
 import org.apache.druid.indexing.overlord.RemoteTaskRunnerWorkItem;
 import org.apache.druid.indexing.overlord.TaskRunnerListener;
@@ -343,6 +344,25 @@ public class HttpRemoteTaskRunner implements WorkerTaskRunner, TaskLogStreamer
     );
   }
 
+  public Map<String, ImmutableWorkerInfo> getWorkersEligibleToRunTasks2(Task task)
+  {
+    return Maps.transformEntries(
+        Maps.filterEntries(
+            workers,
+            input -> ParallelIndexSupervisorTask.TYPE.equals(task.getType()) ?
+                     input.getKey().contains("supervisor") :
+                     !input.getKey().contains("supervisor") &&
+                     !lazyWorkers.containsKey(input.getKey()) &&
+                     !workersWithUnacknowledgedTask.containsKey(input.getKey()) &&
+                     !blackListedWorkers.containsKey(input.getKey()) &&
+                     input.getValue().isInitialized() &&
+                     input.getValue().isEnabled()
+        ),
+        (String key, WorkerHolder value) -> value.toImmutable()
+    );
+  }
+
+  //input -> ParallelIndexSupervisorTask.TYPE.equals(task.getType()) ? input.getKey().contains("supervisor") : !input.getKey().contains("supervisor") &&
   private ImmutableWorkerInfo findWorkerToRunTask(Task task)
   {
     WorkerBehaviorConfig workerConfig = workerConfigRef.get();
@@ -356,7 +376,7 @@ public class HttpRemoteTaskRunner implements WorkerTaskRunner, TaskLogStreamer
 
     return strategy.findWorkerForTask(
         config,
-        ImmutableMap.copyOf(getWorkersEligibleToRunTasks()),
+        ImmutableMap.copyOf(getWorkersEligibleToRunTasks2(task)),
         task
     );
   }
