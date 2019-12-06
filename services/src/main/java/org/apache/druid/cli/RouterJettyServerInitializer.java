@@ -69,11 +69,14 @@ public class RouterJettyServerInitializer implements JettyServerInitializer
       "/public/*",
       "/old-console/*",
       "/pages/*",
-      "/unified-console.html",
       "/favicon.png",
       "/console.html",
       "/index.html",
       "/console-config.js"
+  );
+
+  private static final List<String> UNAUTHORIZED_PATHS_FOR_UI = ImmutableList.of(
+      "/unified-console.html"
   );
 
   private final DruidHttpClientConfig routerHttpClientConfig;
@@ -142,6 +145,7 @@ public class RouterJettyServerInitializer implements JettyServerInitializer
     AuthenticationUtils.addNoopAuthenticationAndAuthorizationFilters(root, UNSECURED_PATHS);
     if (managementProxyConfig.isEnabled()) {
       AuthenticationUtils.addNoopAuthenticationAndAuthorizationFilters(root, UNSECURED_PATHS_FOR_UI);
+      AuthenticationUtils.addNoopAuthorizationFilters(root, UNAUTHORIZED_PATHS_FOR_UI);
     }
     AuthenticationUtils.addNoopAuthenticationAndAuthorizationFilters(root, authConfig.getUnsecuredPaths());
 
