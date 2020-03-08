@@ -20,10 +20,12 @@
 package org.apache.druid.cli;
 
 import com.google.common.collect.ImmutableList;
+import com.google.inject.Inject;
 import com.google.inject.Module;
 import com.google.inject.name.Names;
 import io.airlift.airline.Command;
 import org.apache.druid.client.cache.CacheConfig;
+import org.apache.druid.curator.ZkEnablementConfig;
 import org.apache.druid.discovery.DataNodeService;
 import org.apache.druid.discovery.LookupNodeService;
 import org.apache.druid.discovery.NodeType;
@@ -52,6 +54,7 @@ import org.apache.druid.server.metrics.QueryCountStatsProvider;
 import org.eclipse.jetty.server.Server;
 
 import java.util.List;
+import java.util.Properties;
 
 /**
  */
@@ -63,9 +66,17 @@ public class CliHistorical extends ServerRunnable
 {
   private static final Logger log = new Logger(CliHistorical.class);
 
+  private boolean isZkEnabled = true;
+
   public CliHistorical()
   {
     super(log);
+  }
+
+  @Inject
+  public void configure(Properties properties)
+  {
+    isZkEnabled = ZkEnablementConfig.isEnabled(properties);
   }
 
   @Override
@@ -91,10 +102,13 @@ public class CliHistorical extends ServerRunnable
           binder.bind(JettyServerInitializer.class).to(QueryJettyServerInitializer.class).in(LazySingleton.class);
           binder.bind(QueryCountStatsProvider.class).to(QueryResource.class);
           Jerseys.addResource(binder, QueryResource.class);
-          Jerseys.addResource(binder, HistoricalResource.class);
           Jerseys.addResource(binder, SegmentListerResource.class);
+          Jerseys.addResource(binder, HistoricalResource.class);
           LifecycleModule.register(binder, QueryResource.class);
-          LifecycleModule.register(binder, ZkCoordinator.class);
+
+          if (isZkEnabled) {
+            LifecycleModule.register(binder, ZkCoordinator.class);
+          }
 
           JsonConfigProvider.bind(binder, "druid.historical.cache", CacheConfig.class);
           binder.install(new CacheModule());
