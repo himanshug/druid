@@ -21,6 +21,7 @@ package org.apache.druid.indexing.overlord.hrtr;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
@@ -38,8 +39,10 @@ import com.google.common.util.concurrent.ListenableScheduledFuture;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.errorprone.annotations.concurrent.GuardedBy;
+import com.google.inject.Provider;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.druid.concurrent.LifecycleLock;
+import org.apache.druid.curator.ZkEnablementConfig;
 import org.apache.druid.discovery.DiscoveryDruidNode;
 import org.apache.druid.discovery.DruidNodeDiscovery;
 import org.apache.druid.discovery.DruidNodeDiscoveryProvider;
@@ -82,6 +85,7 @@ import org.jboss.netty.handler.codec.http.HttpMethod;
 import org.joda.time.Period;
 
 import javax.annotation.Nullable;
+import javax.validation.constraints.Null;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
@@ -180,7 +184,11 @@ public class HttpRemoteTaskRunner implements WorkerTaskRunner, TaskLogStreamer
 
   // ZK_CLEANUP_TODO : Remove these when RemoteTaskRunner and WorkerTaskMonitor are removed.
   private static final Joiner JOINER = Joiner.on("/");
+
+  @Nullable // Null, if zk is disabled
   private final CuratorFramework cf;
+
+  @Nullable // Null, if zk is disabled
   private final ScheduledExecutorService zkCleanupExec;
   private final IndexerZkConfig indexerZkConfig;
 
@@ -192,7 +200,7 @@ public class HttpRemoteTaskRunner implements WorkerTaskRunner, TaskLogStreamer
       ProvisioningStrategy<WorkerTaskRunner> provisioningStrategy,
       DruidNodeDiscoveryProvider druidNodeDiscoveryProvider,
       TaskStorage taskStorage,
-      CuratorFramework cf,
+      @Nullable CuratorFramework cf,
       IndexerZkConfig indexerZkConfig
   )
   {
@@ -217,12 +225,18 @@ public class HttpRemoteTaskRunner implements WorkerTaskRunner, TaskLogStreamer
         ScheduledExecutors.fixed(1, "HttpRemoteTaskRunner-Worker-Cleanup-%d")
     );
 
-    this.cf = cf;
+    if (cf != null) {
+      this.cf = cf;
+      this.zkCleanupExec = ScheduledExecutors.fixed(
+          1,
+          "HttpRemoteTaskRunner-zk-cleanup-%d"
+      );
+    } else {
+      this.cf = null;
+      this.zkCleanupExec = null;
+    }
+
     this.indexerZkConfig = indexerZkConfig;
-    this.zkCleanupExec = ScheduledExecutors.fixed(
-        1,
-        "HttpRemoteTaskRunner-zk-cleanup-%d"
-    );
 
     this.provisioningStrategy = provisioningStrategy;
   }
@@ -269,6 +283,10 @@ public class HttpRemoteTaskRunner implements WorkerTaskRunner, TaskLogStreamer
 
   private void scheduleCompletedTaskStatusCleanupFromZk()
   {
+    if (cf == null) {
+      return;
+    }
+
     zkCleanupExec.scheduleAtFixedRate(
         () -> {
           try {

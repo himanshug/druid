@@ -155,9 +155,17 @@ public class DiscoveryModule implements Module
     // Build the binder so that it will at a minimum inject an empty set.
     DruidBinders.discoveryAnnouncementBinder(binder);
 
-    binder.bind(ServiceAnnouncer.class)
-          .to(Key.get(CuratorServiceAnnouncer.class, Names.named(NAME)))
-          .in(LazySingleton.class);
+    boolean isZkEnabled = false;
+    if (isZkEnabled) {
+      binder.bind(ServiceAnnouncer.class)
+            .to(Key.get(CuratorServiceAnnouncer.class, Names.named(NAME)))
+            .in(LazySingleton.class);
+    } else {
+      binder.bind(Key.get(ServiceAnnouncer.Noop.class, Names.named(NAME))).toInstance(new ServiceAnnouncer.Noop());
+      binder.bind(ServiceAnnouncer.class)
+            .to(Key.get(ServiceAnnouncer.Noop.class, Names.named(NAME)))
+            .in(LazySingleton.class);
+    }
 
     // internal discovery bindings.
     PolyBind.createChoiceWithDefault(binder, INTERNAL_DISCOVERY_PROP, Key.get(DruidNodeAnnouncer.class), CURATOR_KEY);
@@ -520,7 +528,7 @@ public class DiscoveryModule implements Module
   private static class DruidLeaderSelectorProvider implements Provider<DruidLeaderSelector>
   {
     @Inject
-    private CuratorFramework curatorFramework;
+    private Provider<CuratorFramework> curatorFramework;
 
     @Inject
     @Self
@@ -540,7 +548,7 @@ public class DiscoveryModule implements Module
     public DruidLeaderSelector get()
     {
       return new CuratorDruidLeaderSelector(
-          curatorFramework,
+          curatorFramework.get(),
           druidNode,
           latchPathFn.apply(zkPathsConfig)
       );
