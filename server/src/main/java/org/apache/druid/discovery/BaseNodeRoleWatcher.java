@@ -49,7 +49,7 @@ public class BaseNodeRoleWatcher
 {
   private static final Logger LOGGER = new Logger(BaseNodeRoleWatcher.class);
 
-  private final NodeRole nodeRole;
+  private final NodeType nodeRole;
 
   /**
    * hostAndPort -> DiscoveryDruidNode
@@ -67,7 +67,7 @@ public class BaseNodeRoleWatcher
 
   public BaseNodeRoleWatcher(
       ExecutorService listenerExecutor,
-      NodeRole nodeRole
+      NodeType nodeRole
   )
   {
     this.listenerExecutor = listenerExecutor;
@@ -116,11 +116,11 @@ public class BaseNodeRoleWatcher
   public void childAdded(DiscoveryDruidNode druidNode)
   {
     synchronized (lock) {
-      if (!nodeRole.equals(druidNode.getNodeRole())) {
+      if (!nodeRole.equals(druidNode.getNodeType())) {
         LOGGER.error(
             "Node[%s] of role[%s] addition ignored due to mismatched role (expected role[%s]).",
             druidNode.getDruidNode().getUriToUse(),
-            druidNode.getNodeRole().getJsonName(),
+            druidNode.getNodeType().getJsonName(),
             nodeRole.getJsonName()
         );
         return;
@@ -162,11 +162,11 @@ public class BaseNodeRoleWatcher
   public void childRemoved(DiscoveryDruidNode druidNode)
   {
     synchronized (lock) {
-      if (!nodeRole.equals(druidNode.getNodeRole())) {
+      if (!nodeRole.equals(druidNode.getNodeType())) {
         LOGGER.error(
             "Node[%s] of role[%s] removal ignored due to mismatched role (expected role[%s]).",
             druidNode.getDruidNode().getUriToUse(),
-            druidNode.getNodeRole().getJsonName(),
+            druidNode.getNodeType().getJsonName(),
             nodeRole.getJsonName()
         );
         return;
@@ -187,7 +187,7 @@ public class BaseNodeRoleWatcher
       LOGGER.error(
           "Noticed disappearance of unknown druid node [%s] of role[%s].",
           druidNode.getDruidNode().getUriToUse(),
-          druidNode.getNodeRole().getJsonName()
+          druidNode.getNodeType().getJsonName()
       );
       return;
     }
@@ -200,7 +200,7 @@ public class BaseNodeRoleWatcher
             () -> listener.nodesRemoved(nodeRemoved),
             "Exception occured in nodeRemoved(node[%s] of role[%s]) in listener [%s].",
             druidNode.getDruidNode().getUriToUse(),
-            druidNode.getNodeRole().getJsonName(),
+            druidNode.getNodeType().getJsonName(),
             listener
         );
       }

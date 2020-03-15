@@ -25,7 +25,7 @@ import com.google.common.collect.Lists;
 import io.kubernetes.client.util.Watch;
 import org.apache.druid.discovery.DiscoveryDruidNode;
 import org.apache.druid.discovery.DruidNodeDiscovery;
-import org.apache.druid.discovery.NodeRole;
+import org.apache.druid.discovery.NodeType;
 import org.apache.druid.java.util.common.StringUtils;
 import org.apache.druid.java.util.common.logger.Logger;
 import org.apache.druid.server.DruidNode;
@@ -45,31 +45,31 @@ public class K8sDruidNodeDiscoveryProviderTest
 
   private final DiscoveryDruidNode testNode1 = new DiscoveryDruidNode(
       new DruidNode("druid/router", "test-host1", true, 80, null, true, false),
-      NodeRole.ROUTER,
+      NodeType.ROUTER,
       null
   );
 
   private final DiscoveryDruidNode testNode2 = new DiscoveryDruidNode(
       new DruidNode("druid/router", "test-host2", true, 80, null, true, false),
-      NodeRole.ROUTER,
+      NodeType.ROUTER,
       null
   );
 
   private final DiscoveryDruidNode testNode3 = new DiscoveryDruidNode(
       new DruidNode("druid/router", "test-host3", true, 80, null, true, false),
-      NodeRole.ROUTER,
+      NodeType.ROUTER,
       null
   );
 
   private final DiscoveryDruidNode testNode4 = new DiscoveryDruidNode(
       new DruidNode("druid/router", "test-host4", true, 80, null, true, false),
-      NodeRole.ROUTER,
+      NodeType.ROUTER,
       null
   );
 
   private final DiscoveryDruidNode testNode5 = new DiscoveryDruidNode(
       new DruidNode("druid/router", "test-host5", true, 80, null, true, false),
-      NodeRole.ROUTER,
+      NodeType.ROUTER,
       null
   );
 
@@ -82,7 +82,7 @@ public class K8sDruidNodeDiscoveryProviderTest
   {
     String labelSelector = "druidDiscoveryAnnouncement-cluster-identifier=druid-cluster,druidDiscoveryAnnouncement-router=true";
     K8sApiClient mockK8sApiClient = EasyMock.createMock(K8sApiClient.class);
-    EasyMock.expect(mockK8sApiClient.listPods(podInfo.getPodNamespace(), labelSelector, NodeRole.ROUTER)).andReturn(
+    EasyMock.expect(mockK8sApiClient.listPods(podInfo.getPodNamespace(), labelSelector, NodeType.ROUTER)).andReturn(
         new DiscoveryDruidNodeList(
             "v1",
             ImmutableMap.of(
@@ -92,8 +92,8 @@ public class K8sDruidNodeDiscoveryProviderTest
         )
     );
     EasyMock.expect(mockK8sApiClient.watchPods(
-        podInfo.getPodNamespace(), labelSelector, "v1", NodeRole.ROUTER)).andReturn(null);
-    EasyMock.expect(mockK8sApiClient.listPods(podInfo.getPodNamespace(), labelSelector, NodeRole.ROUTER)).andReturn(
+        podInfo.getPodNamespace(), labelSelector, "v1", NodeType.ROUTER)).andReturn(null);
+    EasyMock.expect(mockK8sApiClient.listPods(podInfo.getPodNamespace(), labelSelector, NodeType.ROUTER)).andReturn(
         new DiscoveryDruidNodeList(
             "v2",
             ImmutableMap.of(
@@ -103,11 +103,11 @@ public class K8sDruidNodeDiscoveryProviderTest
         )
     );
     EasyMock.expect(mockK8sApiClient.watchPods(
-        podInfo.getPodNamespace(), labelSelector, "v2", NodeRole.ROUTER)).andReturn(
+        podInfo.getPodNamespace(), labelSelector, "v2", NodeType.ROUTER)).andReturn(
             new MockWatchResult(Collections.EMPTY_LIST, true, false)
     );
     EasyMock.expect(mockK8sApiClient.watchPods(
-        podInfo.getPodNamespace(), labelSelector, "v2", NodeRole.ROUTER)).andReturn(
+        podInfo.getPodNamespace(), labelSelector, "v2", NodeType.ROUTER)).andReturn(
         new MockWatchResult(
             ImmutableList.of(
                   new Watch.Response<>(WatchResult.ADDED, new DiscoveryDruidNodeAndResourceVersion("v3", testNode4)),
@@ -118,7 +118,7 @@ public class K8sDruidNodeDiscoveryProviderTest
             )
     );
     EasyMock.expect(mockK8sApiClient.watchPods(
-        podInfo.getPodNamespace(), labelSelector, "v4", NodeRole.ROUTER)).andReturn(
+        podInfo.getPodNamespace(), labelSelector, "v4", NodeType.ROUTER)).andReturn(
         new MockWatchResult(
             ImmutableList.of(
                 new Watch.Response<>(WatchResult.ADDED, new DiscoveryDruidNodeAndResourceVersion("v5", testNode5)),
@@ -138,7 +138,7 @@ public class K8sDruidNodeDiscoveryProviderTest
     );
     discoveryProvider.start();
 
-    K8sDruidNodeDiscoveryProvider.NodeRoleWatcher nodeDiscovery = discoveryProvider.getForNodeRole(NodeRole.ROUTER, false);
+    K8sDruidNodeDiscoveryProvider.NodeRoleWatcher nodeDiscovery = discoveryProvider.getForNodeRole(NodeType.ROUTER, false);
 
     MockListener testListener = new MockListener(
         ImmutableList.of(

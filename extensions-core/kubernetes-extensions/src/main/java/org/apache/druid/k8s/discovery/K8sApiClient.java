@@ -19,7 +19,7 @@
 
 package org.apache.druid.k8s.discovery;
 
-import org.apache.druid.discovery.NodeRole;
+import org.apache.druid.discovery.NodeType;
 
 /**
  * Interface to abstract pod read/update with K8S API Server to allow unit tests with mock impl.
@@ -28,10 +28,10 @@ public interface K8sApiClient
 {
   void patchPod(String podName, String namespace, String jsonPatchStr);
 
-  DiscoveryDruidNodeList listPods(String namespace, String labelSelector, NodeRole nodeRole);
+  DiscoveryDruidNodeList listPods(String namespace, String labelSelector, NodeType nodeRole);
 
   /**
    * @return NULL if history not available or else blah
    */
-  WatchResult watchPods(String namespace, String labelSelector, String lastKnownResourceVersion, NodeRole nodeRole);
+  WatchResult watchPods(String namespace, String labelSelector, String lastKnownResourceVersion, NodeType nodeRole);
 }

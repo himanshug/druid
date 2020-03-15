@@ -21,7 +21,7 @@ package org.apache.druid.k8s.discovery;
 
 import org.apache.druid.discovery.DiscoveryDruidNode;
 import org.apache.druid.discovery.DruidLeaderSelector;
-import org.apache.druid.discovery.NodeRole;
+import org.apache.druid.discovery.NodeType;
 import org.apache.druid.server.DruidNode;
 import org.joda.time.Duration;
 import org.junit.Assert;
@@ -33,7 +33,7 @@ public class K8sDruidLeaderSelectorTest
 {
   private final DiscoveryDruidNode testNode1 = new DiscoveryDruidNode(
       new DruidNode("druid/router", "test-host1", true, 80, null, true, false),
-      NodeRole.ROUTER,
+      NodeType.ROUTER,
       null
   );
 

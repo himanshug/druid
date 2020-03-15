@@ -32,6 +32,8 @@ import org.apache.druid.java.util.common.ISE;
 import javax.validation.constraints.Max;
 import javax.validation.constraints.NotNull;
 import java.net.InetAddress;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.UnknownHostException;
 import java.util.Objects;
 
@@ -280,6 +282,16 @@ public class DruidNode
     }
     catch (UnknownHostException e) {
       throw new ISE(e, "Unable to determine host name");
+    }
+  }
+
+  public URI getUriToUse()
+  {
+    try {
+      return new URI(getServiceScheme(), null, host, getPortToUse(), null, null, null);
+    }
+    catch (URISyntaxException e) {
+      throw new RuntimeException(e);
     }
   }
 

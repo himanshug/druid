@@ -28,7 +28,7 @@ import org.apache.druid.discovery.BaseNodeRoleWatcher;
 import org.apache.druid.discovery.DiscoveryDruidNode;
 import org.apache.druid.discovery.DruidNodeDiscovery;
 import org.apache.druid.discovery.DruidNodeDiscoveryProvider;
-import org.apache.druid.discovery.NodeRole;
+import org.apache.druid.discovery.NodeType;
 import org.apache.druid.guice.ManageLifecycle;
 import org.apache.druid.java.util.common.ISE;
 import org.apache.druid.java.util.common.concurrent.Execs;
@@ -36,7 +36,6 @@ import org.apache.druid.java.util.common.guava.CloseQuietly;
 import org.apache.druid.java.util.common.lifecycle.LifecycleStart;
 import org.apache.druid.java.util.common.lifecycle.LifecycleStop;
 import org.apache.druid.java.util.common.logger.Logger;
-import org.apache.druid.server.DruidNode;
 
 import java.io.Closeable;
 import java.net.SocketTimeoutException;
@@ -45,7 +44,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.BooleanSupplier;
 
 @ManageLifecycle
 public class K8sDruidNodeDiscoveryProvider extends DruidNodeDiscoveryProvider
@@ -59,7 +57,7 @@ public class K8sDruidNodeDiscoveryProvider extends DruidNodeDiscoveryProvider
 
   private ExecutorService listenerExecutor;
 
-  private final ConcurrentHashMap<NodeRole, NodeRoleWatcher> nodeTypeWatchers = new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<NodeType, NodeRoleWatcher> nodeTypeWatchers = new ConcurrentHashMap<>();
 
   private final LifecycleLock lifecycleLock = new LifecycleLock();
 
@@ -90,23 +88,13 @@ public class K8sDruidNodeDiscoveryProvider extends DruidNodeDiscoveryProvider
   }
 
   @Override
-  public BooleanSupplier getForNode(DruidNode node, NodeRole nodeRole)
-  {
-    return () -> !k8sApiClient.listPods(
-        podInfo.getPodNamespace(),
-        K8sDruidNodeAnnouncer.getLabelSelectorForNode(discoveryConfig, nodeRole, node),
-        nodeRole
-    ).getDruidNodes().isEmpty();
-  }
-
-  @Override
-  public DruidNodeDiscovery getForNodeRole(NodeRole nodeType)
+  public DruidNodeDiscovery getForNodeType(NodeType nodeType)
   {
     return getForNodeRole(nodeType, true);
   }
 
   @VisibleForTesting
-  NodeRoleWatcher getForNodeRole(NodeRole nodeType, boolean startAfterCreation)
+  NodeRoleWatcher getForNodeRole(NodeType nodeType, boolean startAfterCreation)
   {
     Preconditions.checkState(lifecycleLock.awaitStarted(1, TimeUnit.MILLISECONDS));
 
@@ -189,14 +177,14 @@ public class K8sDruidNodeDiscoveryProvider extends DruidNodeDiscoveryProvider
     private final AtomicReference<Closeable> watchRef = new AtomicReference<>();
     private static final Closeable STOP_MARKER = () -> {};
 
-    private final NodeRole nodeRole;
+    private final NodeType nodeRole;
     private final BaseNodeRoleWatcher baseNodeRoleWatcher;
 
     private final long watcherErrorRetryWaitMS;
 
     NodeRoleWatcher(
         ExecutorService listenerExecutor,
-        NodeRole nodeRole,
+        NodeType nodeRole,
         PodInfo podInfo,
         K8sDiscoveryConfig discoveryConfig,
         K8sApiClient k8sApiClient,

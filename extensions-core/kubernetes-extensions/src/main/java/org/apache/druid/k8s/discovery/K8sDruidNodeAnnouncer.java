@@ -25,7 +25,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.inject.Inject;
 import org.apache.druid.discovery.DiscoveryDruidNode;
 import org.apache.druid.discovery.DruidNodeAnnouncer;
-import org.apache.druid.discovery.NodeRole;
+import org.apache.druid.discovery.NodeType;
 import org.apache.druid.guice.annotations.Json;
 import org.apache.druid.java.util.common.RE;
 import org.apache.druid.java.util.common.RetryUtils;
@@ -83,10 +83,10 @@ public class K8sDruidNodeAnnouncer implements DruidNodeAnnouncer
   {
     LOGGER.info("Announcing DiscoveryDruidNode[%s]", discoveryDruidNode);
 
-    String roleAnnouncementLabel = getRoleAnnouncementLabel(discoveryDruidNode.getNodeRole());
+    String roleAnnouncementLabel = getRoleAnnouncementLabel(discoveryDruidNode.getNodeType());
     String idAnnouncementLabel = getIdAnnouncementLabel();
     String clusterIdentifierAnnouncementLabel = getClusterIdentifierAnnouncementLabel();
-    String infoAnnotation = getInfoAnnotation(discoveryDruidNode.getNodeRole());
+    String infoAnnotation = getInfoAnnotation(discoveryDruidNode.getNodeType());
 
     try {
       List<Map<String, String>> patches = new ArrayList<>();
@@ -120,10 +120,10 @@ public class K8sDruidNodeAnnouncer implements DruidNodeAnnouncer
   {
     LOGGER.info("Unannouncing DiscoveryDruidNode[%s]", discoveryDruidNode);
 
-    String roleAnnouncementLabel = getRoleAnnouncementLabel(discoveryDruidNode.getNodeRole());
+    String roleAnnouncementLabel = getRoleAnnouncementLabel(discoveryDruidNode.getNodeType());
     String idAnnouncementLabel = getIdAnnouncementLabel();
     String clusterIdentifierAnnouncementLabel = getClusterIdentifierAnnouncementLabel();
-    String infoAnnotation = getInfoAnnotation(discoveryDruidNode.getNodeRole());
+    String infoAnnotation = getInfoAnnotation(discoveryDruidNode.getNodeType());
 
     try {
       List<Map<String, String>> patches = new ArrayList<>();
@@ -174,7 +174,7 @@ public class K8sDruidNodeAnnouncer implements DruidNodeAnnouncer
     }
   }
 
-  public static String getRoleAnnouncementLabel(NodeRole nodeRole)
+  public static String getRoleAnnouncementLabel(NodeType nodeRole)
   {
     return StringUtils.format("druidDiscoveryAnnouncement-%s", nodeRole.getJsonName());
   }
@@ -189,12 +189,12 @@ public class K8sDruidNodeAnnouncer implements DruidNodeAnnouncer
     return "druidDiscoveryAnnouncement-cluster-identifier";
   }
 
-  public static String getInfoAnnotation(NodeRole nodeRole)
+  public static String getInfoAnnotation(NodeType nodeRole)
   {
     return StringUtils.format("druidNodeInfo-%s", nodeRole.getJsonName());
   }
 
-  public static String getLabelSelectorForNodeRole(K8sDiscoveryConfig discoveryConfig, NodeRole nodeRole)
+  public static String getLabelSelectorForNodeRole(K8sDiscoveryConfig discoveryConfig, NodeType nodeRole)
   {
     return StringUtils.format(
         "%s=%s,%s=%s",
@@ -205,7 +205,7 @@ public class K8sDruidNodeAnnouncer implements DruidNodeAnnouncer
     );
   }
 
-  public static String getLabelSelectorForNode(K8sDiscoveryConfig discoveryConfig, NodeRole nodeRole, DruidNode node)
+  public static String getLabelSelectorForNode(K8sDiscoveryConfig discoveryConfig, NodeType nodeRole, DruidNode node)
   {
     return StringUtils.format(
         "%s=%s,%s=%s, %s=%s",

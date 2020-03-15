@@ -23,22 +23,20 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.kubernetes.client.util.Config;
 import org.apache.druid.discovery.DiscoveryDruidNode;
 import org.apache.druid.discovery.DruidNodeDiscovery;
-import org.apache.druid.discovery.NodeRole;
+import org.apache.druid.discovery.NodeType;
 import org.apache.druid.jackson.DefaultObjectMapper;
 import org.apache.druid.server.DruidNode;
-import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.concurrent.CountDownLatch;
-import java.util.function.BooleanSupplier;
 
 public class K8sAnnouncerAndDiscoveryTest
 {
   private final DiscoveryDruidNode testNode = new DiscoveryDruidNode(
       new DruidNode("druid/router", "test-host", true, 80, null, true, false),
-      NodeRole.ROUTER,
+      NodeType.ROUTER,
       null
   );
 
@@ -60,10 +58,7 @@ public class K8sAnnouncerAndDiscoveryTest
     );
     discoveryProvider.start();
 
-    BooleanSupplier nodeInquirer = discoveryProvider.getForNode(testNode.getDruidNode(), NodeRole.ROUTER);
-    Assert.assertFalse(nodeInquirer.getAsBoolean());
-
-    DruidNodeDiscovery discovery = discoveryProvider.getForNodeRole(NodeRole.ROUTER);
+    DruidNodeDiscovery discovery = discoveryProvider.getForNodeType(NodeType.ROUTER);
 
     CountDownLatch nodeViewInitialized = new CountDownLatch(1);
     CountDownLatch nodeAppeared = new CountDownLatch(1);
@@ -105,13 +100,9 @@ public class K8sAnnouncerAndDiscoveryTest
 
     nodeAppeared.await();
 
-    Assert.assertTrue(nodeInquirer.getAsBoolean());
-
     announcer.unannounce(testNode);
 
     nodeDisappeared.await();
-
-    Assert.assertFalse(nodeInquirer.getAsBoolean());
 
     discoveryProvider.stop();
   }

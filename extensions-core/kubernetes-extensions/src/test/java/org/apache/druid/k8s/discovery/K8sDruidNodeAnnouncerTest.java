@@ -24,7 +24,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import org.apache.druid.discovery.DiscoveryDruidNode;
-import org.apache.druid.discovery.NodeRole;
+import org.apache.druid.discovery.NodeType;
 import org.apache.druid.jackson.DefaultObjectMapper;
 import org.apache.druid.server.DruidNode;
 import org.easymock.Capture;
@@ -39,7 +39,7 @@ public class K8sDruidNodeAnnouncerTest
 {
   private final DiscoveryDruidNode testNode = new DiscoveryDruidNode(
       new DruidNode("druid/router", "test-host", true, 80, null, true, false),
-      NodeRole.ROUTER,
+      NodeType.ROUTER,
       null
   );
 
