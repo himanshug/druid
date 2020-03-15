@@ -123,8 +123,7 @@ public class DruidLeaderClientTest extends BaseJettyTest
         httpClient,
         druidNodeDiscoveryProvider,
         NodeType.PEON,
-        "/simple/leader",
-        EasyMock.createNiceMock(ServerDiscoverySelector.class)
+        "/simple/leader"
     );
     druidLeaderClient.start();
 
@@ -148,8 +147,7 @@ public class DruidLeaderClientTest extends BaseJettyTest
         httpClient,
         druidNodeDiscoveryProvider,
         NodeType.PEON,
-        "/simple/leader",
-        EasyMock.createNiceMock(ServerDiscoverySelector.class)
+        "/simple/leader"
     );
     druidLeaderClient.start();
 
@@ -175,8 +173,7 @@ public class DruidLeaderClientTest extends BaseJettyTest
         httpClient,
         druidNodeDiscoveryProvider,
         NodeType.PEON,
-        "/simple/leader",
-        EasyMock.createNiceMock(ServerDiscoverySelector.class)
+        "/simple/leader"
     );
     druidLeaderClient.start();
 
@@ -209,8 +206,7 @@ public class DruidLeaderClientTest extends BaseJettyTest
         httpClient,
         druidNodeDiscoveryProvider,
         NodeType.PEON,
-        "/simple/leader",
-        serverDiscoverySelector
+        "/simple/leader"
     );
     druidLeaderClient.start();
 
@@ -236,8 +232,7 @@ public class DruidLeaderClientTest extends BaseJettyTest
         httpClient,
         druidNodeDiscoveryProvider,
         NodeType.PEON,
-        "/simple/leader",
-        EasyMock.createNiceMock(ServerDiscoverySelector.class)
+        "/simple/leader"
     );
     druidLeaderClient.start();
 

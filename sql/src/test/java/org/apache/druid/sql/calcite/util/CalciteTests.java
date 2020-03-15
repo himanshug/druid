@@ -27,11 +27,9 @@ import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.Key;
 import com.google.inject.Module;
-import org.apache.curator.x.discovery.ServiceProvider;
 import org.apache.druid.client.BrokerSegmentWatcherConfig;
 import org.apache.druid.client.ServerInventoryView;
 import org.apache.druid.collections.CloseableStupidPool;
-import org.apache.druid.curator.discovery.ServerDiscoverySelector;
 import org.apache.druid.data.input.InputRow;
 import org.apache.druid.data.input.impl.DimensionSchema;
 import org.apache.druid.data.input.impl.DimensionsSpec;
@@ -790,8 +788,7 @@ public class CalciteTests
         EasyMock.createMock(HttpClient.class),
         EasyMock.createMock(DruidNodeDiscoveryProvider.class),
         NodeType.COORDINATOR,
-        "/simple/leader",
-        new ServerDiscoverySelector(EasyMock.createMock(ServiceProvider.class), "test")
+        "/simple/leader"
     )
     {
     };
