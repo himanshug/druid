@@ -19,49 +19,22 @@
 
 package org.apache.druid.security.pac4j;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Preconditions;
-import org.apache.druid.metadata.PasswordProvider;
 
-public class OIDCConfig
+public class LdapConfig
 {
   @JsonProperty
-  private final String clientID;
+  private final String url;
 
-  @JsonProperty
-  private final PasswordProvider clientSecret;
-
-  @JsonProperty
-  private final String discoveryURI;
-
-  @JsonCreator
-  public OIDCConfig(
-      @JsonProperty("clientID") String clientID,
-      @JsonProperty("clientSecret") PasswordProvider clientSecret,
-      @JsonProperty("discoveryURI") String discoveryURI
-  )
+  public LdapConfig(@JsonProperty("url") String url)
   {
-    this.clientID = Preconditions.checkNotNull(clientID, "null clientID");
-    this.clientSecret = Preconditions.checkNotNull(clientSecret, "null clientSecret");
-    this.discoveryURI = Preconditions.checkNotNull(discoveryURI, "null discoveryURI");
+    this.url = Preconditions.checkNotNull(url, "null ldap url");
   }
 
   @JsonProperty
-  public String getClientID()
+  public String getUrl()
   {
-    return clientID;
-  }
-
-  @JsonProperty
-  public PasswordProvider getClientSecret()
-  {
-    return clientSecret;
-  }
-
-  @JsonProperty
-  public String getDiscoveryURI()
-  {
-    return discoveryURI;
+    return url;
   }
 }

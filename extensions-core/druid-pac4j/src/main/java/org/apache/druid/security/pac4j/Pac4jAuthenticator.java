@@ -28,10 +28,6 @@ import com.google.common.base.Suppliers;
 import org.apache.druid.server.security.AuthenticationResult;
 import org.apache.druid.server.security.Authenticator;
 import org.pac4j.core.config.Config;
-import org.pac4j.core.http.callback.NoParameterCallbackUrlResolver;
-import org.pac4j.core.http.url.DefaultUrlResolver;
-import org.pac4j.oidc.client.OidcClient;
-import org.pac4j.oidc.config.OidcConfiguration;
 
 import javax.annotation.Nullable;
 import javax.servlet.DispatcherType;
@@ -45,19 +41,22 @@ public class Pac4jAuthenticator implements Authenticator
   private final String name;
   private final String authorizerName;
   private final Supplier<Config> pac4jConfigSupplier;
-  private final OIDCConfig oidcConfig;
+  private final Pac4jCommonConfig pac4jCommonConfig;
 
   @JsonCreator
   public Pac4jAuthenticator(
       @JsonProperty("name") String name,
       @JsonProperty("authorizerName") String authorizerName,
-      @JacksonInject OIDCConfig oidcConfig
+      @JacksonInject Pac4jCommonConfig pac4jCommonConfig,
+      @JacksonInject Pac4jClientFactory pac4jClientFactory
   )
   {
     this.name = name;
     this.authorizerName = authorizerName;
-    this.oidcConfig = oidcConfig;
-    this.pac4jConfigSupplier = Suppliers.memoize(() -> createPac4jConfig(oidcConfig));
+    this.pac4jCommonConfig = pac4jCommonConfig;
+    this.pac4jConfigSupplier = Suppliers.memoize(
+        () -> new Config(Pac4jCallbackResource.SELF_URL, pac4jClientFactory.getClient())
+    );
   }
 
   @Override
@@ -67,7 +66,7 @@ public class Pac4jAuthenticator implements Authenticator
         name,
         authorizerName,
         pac4jConfigSupplier.get(),
-        oidcConfig.getCookiePassphrase().getPassword()
+        pac4jCommonConfig.getCookiePassphrase().getPassword()
     );
   }
 
@@ -107,21 +106,5 @@ public class Pac4jAuthenticator implements Authenticator
   public EnumSet<DispatcherType> getDispatcherType()
   {
     return null;
-  }
-
-  private Config createPac4jConfig(OIDCConfig oidcConfig)
-  {
-    OidcConfiguration oidcConf = new OidcConfiguration();
-    oidcConf.setClientId(oidcConfig.getClientID());
-    oidcConf.setSecret(oidcConfig.getClientSecret().getPassword());
-    oidcConf.setDiscoveryURI(oidcConfig.getDiscoveryURI());
-    oidcConf.setExpireSessionWithToken(true);
-    oidcConf.setUseNonce(true);
-
-    OidcClient oidcClient = new OidcClient(oidcConf);
-    oidcClient.setUrlResolver(new DefaultUrlResolver(true));
-    oidcClient.setCallbackUrlResolver(new NoParameterCallbackUrlResolver());
-
-    return new Config(Pac4jCallbackResource.SELF_URL, oidcClient);
   }
 }

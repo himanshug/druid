@@ -23,14 +23,23 @@ import com.fasterxml.jackson.databind.Module;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.google.common.collect.ImmutableList;
 import com.google.inject.Binder;
+import com.google.inject.Key;
 import org.apache.druid.guice.Jerseys;
 import org.apache.druid.guice.JsonConfigProvider;
+import org.apache.druid.guice.LazySingleton;
+import org.apache.druid.guice.PolyBind;
 import org.apache.druid.initialization.DruidModule;
+import org.apache.druid.java.util.common.StringUtils;
 
 import java.util.List;
 
 public class Pac4jDruidModule implements DruidModule
 {
+  private static final String COMMON_KEY = "druid.auth.pac4j";
+
+  private static final String OIDC_KEY = "oidc";
+  private static final String LDAP_KEY = "ldap";
+
   @Override
   public List<? extends Module> getJacksonModules()
   {
@@ -44,8 +53,39 @@ public class Pac4jDruidModule implements DruidModule
   @Override
   public void configure(Binder binder)
   {
-    JsonConfigProvider.bind(binder, "druid.auth.pac4j.oidc", OIDCConfig.class);
+    JsonConfigProvider.bind(binder, COMMON_KEY, Pac4jCommonConfig.class);
+    JsonConfigProvider.bind(binder, StringUtils.format("%s.%s", COMMON_KEY, OIDC_KEY), OIDCConfig.class);
+    JsonConfigProvider.bind(binder, StringUtils.format("%s.%s", COMMON_KEY, LDAP_KEY), LdapConfig.class);
 
     Jerseys.addResource(binder, Pac4jCallbackResource.class);
+
+    PolyBind.createChoiceWithDefault(
+        binder,
+        StringUtils.format("%s.%s", COMMON_KEY, "client.type"),
+        Key.get(Pac4jClientFactory.class),
+        OIDC_KEY
+    );
+
+    PolyBind.optionBinder(binder, Key.get(Pac4jClientFactory.class))
+            .addBinding(OIDC_KEY)
+            .to(OidcClientFactory.class)
+            .in(LazySingleton.class);
+
+    PolyBind.optionBinder(binder, Key.get(Pac4jClientFactory.class))
+            .addBinding("httpDirectBasicClient")
+            .to(Pac4jDirectHttpClientFactory.class)
+            .in(LazySingleton.class);
+
+    PolyBind.createChoiceWithDefault(
+        binder,
+        StringUtils.format("%s.%s", COMMON_KEY, "authenticator.type"),
+        Key.get(Pac4jAuthenticatorrFactory.class),
+        "ldap"
+    );
+
+    PolyBind.optionBinder(binder, Key.get(Pac4jAuthenticatorrFactory.class))
+            .addBinding(LDAP_KEY)
+            .to(Pac4jLdapAuthenticatorFactory.class)
+            .in(LazySingleton.class);
   }
 }

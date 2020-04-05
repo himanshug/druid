@@ -19,49 +19,21 @@
 
 package org.apache.druid.security.pac4j;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.base.Preconditions;
 import org.apache.druid.metadata.PasswordProvider;
 
-public class OIDCConfig
+public class Pac4jCommonConfig
 {
   @JsonProperty
-  private final String clientID;
+  private final PasswordProvider cookiePassphrase;
 
-  @JsonProperty
-  private final PasswordProvider clientSecret;
-
-  @JsonProperty
-  private final String discoveryURI;
-
-  @JsonCreator
-  public OIDCConfig(
-      @JsonProperty("clientID") String clientID,
-      @JsonProperty("clientSecret") PasswordProvider clientSecret,
-      @JsonProperty("discoveryURI") String discoveryURI
-  )
+  public Pac4jCommonConfig(@JsonProperty("cookiePassphrase") PasswordProvider cookiePassphrase)
   {
-    this.clientID = Preconditions.checkNotNull(clientID, "null clientID");
-    this.clientSecret = Preconditions.checkNotNull(clientSecret, "null clientSecret");
-    this.discoveryURI = Preconditions.checkNotNull(discoveryURI, "null discoveryURI");
+    this.cookiePassphrase = cookiePassphrase;
   }
 
-  @JsonProperty
-  public String getClientID()
+  public PasswordProvider getCookiePassphrase()
   {
-    return clientID;
-  }
-
-  @JsonProperty
-  public PasswordProvider getClientSecret()
-  {
-    return clientSecret;
-  }
-
-  @JsonProperty
-  public String getDiscoveryURI()
-  {
-    return discoveryURI;
+    return cookiePassphrase;
   }
 }
