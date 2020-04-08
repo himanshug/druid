@@ -28,6 +28,7 @@ import com.google.common.base.Suppliers;
 import com.google.inject.Provider;
 import org.apache.druid.server.security.AuthenticationResult;
 import org.apache.druid.server.security.Authenticator;
+import org.pac4j.core.authorization.generator.FromAttributesAuthorizationGenerator;
 import org.pac4j.core.config.Config;
 import org.pac4j.core.http.callback.NoParameterCallbackUrlResolver;
 import org.pac4j.core.http.url.DefaultUrlResolver;
@@ -130,6 +131,7 @@ public class Pac4jAuthenticator implements Authenticator
     oidcConf.setDiscoveryURI(oidcConfig.getDiscoveryURI());
     oidcConf.setExpireSessionWithToken(true);
     oidcConf.setUseNonce(true);
+    oidcConf.setScope(oidcConfig.getScope());
     oidcConf.setResourceRetriever(
         new CustomSSLResourceRetriever(pac4jCommonConfig.getReadTimeout().getMillis(), sslSocketFactory)
     );
@@ -137,6 +139,9 @@ public class Pac4jAuthenticator implements Authenticator
     OidcClient oidcClient = new OidcClient(oidcConf);
     oidcClient.setUrlResolver(new DefaultUrlResolver(true));
     oidcClient.setCallbackUrlResolver(new NoParameterCallbackUrlResolver());
+    if (oidcConfig.getRoleAttributeKeys() != null) {
+      oidcClient.setAuthorizationGenerator(new FromAttributesAuthorizationGenerator(oidcConfig.getRoleAttributeKeys(), null));
+    }
 
     return new Config(Pac4jCallbackResource.SELF_URL, oidcClient);
   }

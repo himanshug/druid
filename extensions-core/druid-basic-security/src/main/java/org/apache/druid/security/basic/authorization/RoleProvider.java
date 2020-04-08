@@ -31,6 +31,7 @@ import java.util.Set;
 @JsonSubTypes(value = {
     @JsonSubTypes.Type(name = "metadata", value = MetadataStoreRoleProvider.class),
     @JsonSubTypes.Type(name = "ldap", value = LDAPRoleProvider.class),
+    @JsonSubTypes.Type(name = "context", value = ContextKeyRoleProvider.class),
 })
 public interface RoleProvider
 {

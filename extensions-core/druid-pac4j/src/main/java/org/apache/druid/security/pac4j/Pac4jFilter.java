@@ -19,6 +19,7 @@
 
 package org.apache.druid.security.pac4j;
 
+import com.google.common.collect.ImmutableMap;
 import org.apache.druid.java.util.common.logger.Logger;
 import org.apache.druid.server.security.AuthConfig;
 import org.apache.druid.server.security.AuthenticationResult;
@@ -29,7 +30,7 @@ import org.pac4j.core.engine.CallbackLogic;
 import org.pac4j.core.engine.DefaultCallbackLogic;
 import org.pac4j.core.engine.DefaultSecurityLogic;
 import org.pac4j.core.engine.SecurityLogic;
-import org.pac4j.core.http.adapter.HttpActionAdapter;
+import org.pac4j.core.http.adapter.J2ENopHttpActionAdapter;
 import org.pac4j.core.profile.CommonProfile;
 
 import javax.servlet.Filter;
@@ -42,16 +43,15 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Set;
 
 public class Pac4jFilter implements Filter
 {
   private static final Logger LOGGER = new Logger(Pac4jFilter.class);
-
-  private static final HttpActionAdapter<String, J2EContext> NOOP_HTTP_ACTION_ADAPTER = (int code, J2EContext ctx) -> null;
-
+  
   private final Config pac4jConfig;
-  private final SecurityLogic<String, J2EContext> securityLogic;
-  private final CallbackLogic<String, J2EContext> callbackLogic;
+  private final SecurityLogic<Object, J2EContext> securityLogic;
+  private final CallbackLogic<Object, J2EContext> callbackLogic;
   private final SessionStore<J2EContext> sessionStore;
 
   private final String name;
@@ -94,11 +94,11 @@ public class Pac4jFilter implements Filter
       callbackLogic.perform(
           context,
           pac4jConfig,
-          NOOP_HTTP_ACTION_ADAPTER,
+          J2ENopHttpActionAdapter.INSTANCE,
           "/",
           true, false, false, null);
     } else {
-      String uid = securityLogic.perform(
+      Object authResult = securityLogic.perform(
           context,
           pac4jConfig,
           (J2EContext ctx, Collection<CommonProfile> profiles, Object... parameters) -> {
@@ -106,15 +106,31 @@ public class Pac4jFilter implements Filter
               LOGGER.warn("No profiles found after OIDC auth.");
               return null;
             } else {
-              return profiles.iterator().next().getId();
+              CommonProfile profile = profiles.iterator().next();
+              Set<String> roles = profile.getRoles();
+
+              if (roles == null || roles.isEmpty()) {
+                return new AuthenticationResult(
+                    profile.getId(),
+                    authorizerName,
+                    name,
+                    null
+                );
+              } else {
+                return new AuthenticationResult(
+                    profile.getId(),
+                    authorizerName,
+                    name,
+                    ImmutableMap.of("__druid_basic_security_roles", roles)
+                );
+              }
             }
           },
-          NOOP_HTTP_ACTION_ADAPTER,
+          J2ENopHttpActionAdapter.INSTANCE,
           null, null, null, null);
 
-      if (uid != null) {
-        AuthenticationResult authenticationResult = new AuthenticationResult(uid, authorizerName, name, null);
-        servletRequest.setAttribute(AuthConfig.DRUID_AUTHENTICATION_RESULT, authenticationResult);
+      if (authResult != null) {
+        servletRequest.setAttribute(AuthConfig.DRUID_AUTHENTICATION_RESULT, authResult);
         filterChain.doFilter(servletRequest, servletResponse);
       }
     }

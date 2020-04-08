@@ -24,6 +24,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Preconditions;
 import org.apache.druid.metadata.PasswordProvider;
 
+import javax.annotation.Nullable;
+import java.util.Set;
+
 public class OIDCConfig
 {
   @JsonProperty
@@ -35,16 +38,27 @@ public class OIDCConfig
   @JsonProperty
   private final String discoveryURI;
 
+  @JsonProperty
+  private final String scope;
+
+  @Nullable
+  @JsonProperty
+  private final Set<String> roleAttributeKeys;
+
   @JsonCreator
   public OIDCConfig(
       @JsonProperty("clientID") String clientID,
       @JsonProperty("clientSecret") PasswordProvider clientSecret,
-      @JsonProperty("discoveryURI") String discoveryURI
+      @JsonProperty("discoveryURI") String discoveryURI,
+      @JsonProperty("scope") String scope,
+      @JsonProperty("roleAttributeKeys") Set<String> roleAttributeKeys
   )
   {
     this.clientID = Preconditions.checkNotNull(clientID, "null clientID");
     this.clientSecret = Preconditions.checkNotNull(clientSecret, "null clientSecret");
     this.discoveryURI = Preconditions.checkNotNull(discoveryURI, "null discoveryURI");
+    this.scope = scope == null ? "openid" : scope;
+    this.roleAttributeKeys = roleAttributeKeys;
   }
 
   @JsonProperty
@@ -63,5 +77,18 @@ public class OIDCConfig
   public String getDiscoveryURI()
   {
     return discoveryURI;
+  }
+
+  @JsonProperty
+  public String getScope()
+  {
+    return scope;
+  }
+
+  @Nullable
+  @JsonProperty
+  public Set<String> getRoleAttributeKeys()
+  {
+    return roleAttributeKeys;
   }
 }
