@@ -58,6 +58,12 @@ public class ColumnBuilder
     return this;
   }
 
+  public ColumnBuilder setTypeName(String typeName)
+  {
+    this.capabilitiesBuilder.setTypeName(typeName);
+    return this;
+  }
+
   public ColumnBuilder setHasMultipleValues(boolean hasMultipleValues)
   {
     this.capabilitiesBuilder.setHasMultipleValues(hasMultipleValues);
