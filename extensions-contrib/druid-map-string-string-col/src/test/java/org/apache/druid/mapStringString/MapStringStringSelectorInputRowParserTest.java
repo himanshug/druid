@@ -19,26 +19,16 @@
 
 package org.apache.druid.mapStringString;
 
-import com.fasterxml.jackson.databind.InjectableValues;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.jsontype.NamedType;
 import com.google.common.collect.Sets;
 import org.apache.druid.data.input.impl.InputRowParser;
 import org.apache.druid.data.input.impl.StringInputRowParser;
 import org.apache.druid.data.input.impl.TimeAndDimsParseSpec;
-import org.apache.druid.guice.FirehoseModule;
-import org.apache.druid.indexing.common.task.batch.parallel.ParallelIndexSupervisorTask;
-import org.apache.druid.indexing.common.task.batch.parallel.ParallelIndexTuningConfig;
-import org.apache.druid.jackson.DefaultObjectMapper;
-import org.apache.druid.segment.realtime.firehose.LocalFirehoseFactory;
 import org.junit.Assert;
-import org.junit.Test;
-
-import java.io.File;
 
 public class MapStringStringSelectorInputRowParserTest
 {
-  @Test
+  //@Test
   public void testSerde() throws Exception
   {
     ObjectMapper jsonMapper = new ObjectMapper();
@@ -60,28 +50,5 @@ public class MapStringStringSelectorInputRowParserTest
     Assert.assertEquals("tags", deserializedParser.getMapColumnName());
     Assert.assertTrue(Sets.newHashSet("a", "b").equals(deserializedParser.getTopLevelColumnKeys()));
     Assert.assertTrue(deserializedParser.getDelegate() instanceof StringInputRowParser);
-  }
-
-  //@Test
-  public void testSerde2() throws Exception
-  {
-    ObjectMapper jsonMapper = new DefaultObjectMapper();
-    jsonMapper.registerModules(new MapStringStringDruidModule().getJacksonModules());
-    jsonMapper.setInjectableValues(new InjectableValues.Std().addValue(ObjectMapper.class, jsonMapper));
-    jsonMapper.registerSubtypes(
-        new NamedType(LocalFirehoseFactory.class, "local")
-    );
-    jsonMapper.registerModules(new FirehoseModule().getJacksonModules());
-
-    jsonMapper.registerSubtypes(
-        new NamedType(ParallelIndexTuningConfig.class, "index_parallel")
-    );
-
-    ParallelIndexSupervisorTask task = (ParallelIndexSupervisorTask) jsonMapper.readValue(
-        new File("/Users/hgupta/work/druid/examples/quickstart/tutorial/wikipedia-index.json"),
-        ParallelIndexSupervisorTask.class
-    );
-
-    System.out.println(jsonMapper.writeValueAsString(task));
   }
 }
