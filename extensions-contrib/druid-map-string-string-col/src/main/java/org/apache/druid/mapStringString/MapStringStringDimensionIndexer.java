@@ -108,7 +108,7 @@ public class MapStringStringDimensionIndexer implements DimensionIndexer<MapStri
   public ColumnCapabilities getColumnCapabilities()
   {
     return new ColumnCapabilitiesImpl().setType(ValueType.COMPLEX)
-                                       .setTypeName(MapStringStringDruidModule.TYPE_NAME);
+                                       .setComplexTypeName(MapStringStringDruidModule.TYPE_NAME);
   }
 
   @Override
