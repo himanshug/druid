@@ -73,7 +73,7 @@ public class MapStringStringComplexMetricSerde extends ComplexMetricSerde
   public void deserializeColumn(ByteBuffer buffer, ColumnBuilder builder, ColumnConfig columnConfig)
   {
     MapStringStringColumnSupplier supplier = new MapStringStringColumnSupplier(buffer, builder, columnConfig, JSON_MAPPER);
-    builder.setTypeName(MapStringStringDruidModule.TYPE_NAME);
+    builder.setComplexTypeName(MapStringStringDruidModule.TYPE_NAME);
     builder.setComplexColumnSupplier(supplier);
   }
 
