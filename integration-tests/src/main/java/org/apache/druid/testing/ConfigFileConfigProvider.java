@@ -25,6 +25,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.druid.java.util.common.StringUtils;
 import org.apache.druid.java.util.common.jackson.JacksonUtils;
 import org.apache.druid.java.util.common.logger.Logger;
+import org.apache.druid.testing.guice.DruidTestModule;
 
 import java.io.File;
 import java.io.IOException;
@@ -34,12 +35,18 @@ public class ConfigFileConfigProvider implements IntegrationTestingConfigProvide
 {
   private static final Logger LOG = new Logger(ConfigFileConfigProvider.class);
   private String routerHost;
+  private String routerInternalHost;
   private String brokerHost;
+  private String brokerInternalHost;
   private String historicalHost;
   private String coordinatorHost;
+  private String coordinatorInternalHost;
   private String coordinatorTwoHost;
+  private String coordinatorTwoInternalHost;
   private String overlordHost;
+  private String overlordInternalHost;
   private String overlordTwoHost;
+  private String overlordTwoInternalHost;
   private String routerUrl;
   private String brokerUrl;
   private String historicalUrl;
@@ -72,6 +79,8 @@ public class ConfigFileConfigProvider implements IntegrationTestingConfigProvide
   private String hadoopGcsCredentialsPath;
   private String azureKey;
   private String streamEndpoint;
+  private DruidTestModule.DruidDeploymentEnvType druidDeploymentEnvType;
+  private String druidClusterHost;
 
   @JsonCreator
   ConfigFileConfigProvider(@JsonProperty("configFile") String configFile)
@@ -104,6 +113,12 @@ public class ConfigFileConfigProvider implements IntegrationTestingConfigProvide
         routerTLSUrl = StringUtils.format("https://%s:%s", routerHost, props.get("router_tls_port"));
       }
     }
+
+    routerInternalHost = props.get("router_internal_host");
+    if (routerInternalHost == null) {
+      routerInternalHost = routerHost;
+    }
+
     permissiveRouterUrl = props.get("router_permissive_url");
     if (permissiveRouterUrl == null) {
       String permissiveRouterHost = props.get("router_permissive_host");
@@ -159,6 +174,11 @@ public class ConfigFileConfigProvider implements IntegrationTestingConfigProvide
       }
     }
 
+    brokerInternalHost = props.get("broker_internal_host");
+    if (brokerInternalHost == null) {
+      brokerInternalHost = brokerHost;
+    }
+
     historicalHost = props.get("historical_host");
     historicalUrl = props.get("historical_url");
     if (historicalUrl == null) {
@@ -183,6 +203,28 @@ public class ConfigFileConfigProvider implements IntegrationTestingConfigProvide
       }
     }
 
+    coordinatorInternalHost = props.get("coordinator_internal_host");
+    if (coordinatorInternalHost == null) {
+      coordinatorInternalHost = coordinatorHost;
+    }
+
+    coordinatorTwoHost = props.get("coordinator_two_host");
+    coordinatorTwoUrl = props.get("coordinator_two_url");
+    if (coordinatorTwoUrl == null) {
+      coordinatorTwoUrl = StringUtils.format("http://%s:%s", coordinatorTwoHost, props.get("coordinator_two_port"));
+    }
+    coordinatorTwoTLSUrl = props.get("coordinator_two_tls_url");
+    if (coordinatorTwoTLSUrl == null) {
+      if (null != coordinatorTwoHost) {
+        coordinatorTwoTLSUrl = StringUtils.format("https://%s:%s", coordinatorTwoHost, props.get("coordinator_two_tls_port"));
+      }
+    }
+
+    coordinatorTwoInternalHost = props.get("coordinator_two_internal_host");
+    if (coordinatorTwoInternalHost == null) {
+      coordinatorTwoInternalHost = coordinatorTwoHost;
+    }
+
     overlordHost = props.get("indexer_host");
     overlordUrl = props.get("indexer_url");
     if (overlordUrl == null) {
@@ -194,16 +236,10 @@ public class ConfigFileConfigProvider implements IntegrationTestingConfigProvide
         overlordTLSUrl = StringUtils.format("https://%s:%s", overlordHost, props.get("indexer_tls_port"));
       }
     }
-    coordinatorTwoHost = props.get("coordinator_two_host");
-    coordinatorTwoUrl = props.get("coordinator_two_url");
-    if (coordinatorTwoUrl == null) {
-      coordinatorTwoUrl = StringUtils.format("http://%s:%s", coordinatorTwoHost, props.get("coordinator_two_port"));
-    }
-    coordinatorTwoTLSUrl = props.get("coordinator_two_tls_url");
-    if (coordinatorTwoTLSUrl == null) {
-      if (null != coordinatorTwoHost) {
-        coordinatorTwoTLSUrl = StringUtils.format("https://%s:%s", coordinatorTwoHost, props.get("coordinator_two_tls_port"));
-      }
+
+    overlordInternalHost = props.get("overlord_internal_host");
+    if (overlordInternalHost == null) {
+      overlordInternalHost = overlordHost;
     }
 
     overlordTwoHost = props.get("overlord_two_host");
@@ -217,8 +253,22 @@ public class ConfigFileConfigProvider implements IntegrationTestingConfigProvide
         overlordTwoTLSUrl = StringUtils.format("https://%s:%s", overlordTwoHost, props.get("overlord_two_tls_port"));
       }
     }
-    
+
+    overlordTwoInternalHost = props.get("overlord_two_internal_host");
+    if (overlordTwoInternalHost == null) {
+      overlordTwoInternalHost = overlordTwoHost;
+    }
+
     middleManagerHost = props.get("middlemanager_host");
+
+    String druidDeploymentEnvTypeStr = props.get("druid_deployment_env_type");
+    if (druidDeploymentEnvTypeStr != null) {
+      druidDeploymentEnvType = DruidTestModule.DruidDeploymentEnvType.valueOf(druidDeploymentEnvTypeStr);
+    } else {
+      druidDeploymentEnvType = DruidTestModule.DruidDeploymentEnvType.UNKNOWN;
+    }
+
+    druidClusterHost = props.get("druid_cluster_host");
 
     zookeeperHosts = props.get("zookeeper_hosts");
     kafkaHost = props.get("kafka_host") + ":" + props.get("kafka_port");
@@ -416,9 +466,21 @@ public class ConfigFileConfigProvider implements IntegrationTestingConfigProvide
       }
 
       @Override
+      public String getBrokerInternalHost()
+      {
+        return brokerInternalHost;
+      }
+
+      @Override
       public String getRouterHost()
       {
         return routerHost;
+      }
+
+      @Override
+      public String getRouterInternalHost()
+      {
+        return routerInternalHost;
       }
 
       @Override
@@ -428,9 +490,21 @@ public class ConfigFileConfigProvider implements IntegrationTestingConfigProvide
       }
 
       @Override
+      public String getCoordinatorInternalHost()
+      {
+        return coordinatorInternalHost;
+      }
+
+      @Override
       public String getCoordinatorTwoHost()
       {
         return coordinatorTwoHost;
+      }
+
+      @Override
+      public String getCoordinatorTwoInternalHost()
+      {
+        return coordinatorTwoInternalHost;
       }
 
       @Override
@@ -440,9 +514,27 @@ public class ConfigFileConfigProvider implements IntegrationTestingConfigProvide
       }
 
       @Override
+      public String getOverlordInternalHost()
+      {
+        return overlordInternalHost;
+      }
+
+      @Override
       public String getOverlordTwoHost()
       {
         return overlordTwoHost;
+      }
+
+      @Override
+      public String getOverlordTwoInternalHost()
+      {
+        return overlordTwoInternalHost;
+      }
+
+      @Override
+      public DruidTestModule.DruidDeploymentEnvType getDruidDeploymentEnvType()
+      {
+        return druidDeploymentEnvType;
       }
 
       @Override
@@ -518,9 +610,9 @@ public class ConfigFileConfigProvider implements IntegrationTestingConfigProvide
       }
 
       @Override
-      public boolean isDocker()
+      public String getDruidClusterHost()
       {
-        return false;
+        return druidClusterHost;
       }
     };
   }
