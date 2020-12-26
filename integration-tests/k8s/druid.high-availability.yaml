@@ -16,7 +16,7 @@
 apiVersion: "druid.apache.org/v1alpha1"
 kind: "Druid"
 metadata:
-  name: tiny-cluster
+  name: c
 spec:
   image: druid/cluster:v1
   # Optionally specify image for all nodes. Can be specify on nodes also
@@ -110,9 +110,11 @@ spec:
       valueFrom:
         fieldRef:
           fieldPath: metadata.namespace
+    - name: DRUID_SET_HOST
+      value: "0"
 
   nodes:
-    brokers:
+    bs:
       # Optionally specify for running broker as Deployment
       # kind: Deployment
       nodeType: "broker"
@@ -132,7 +134,7 @@ spec:
           selector:
             nodeSpecUniqueStr: druid-tiny-cluster-brokers
           metadata:
-            name: broker-%s-service
+            name: "%s-np"
         - spec:
             type: ClusterIP
             clusterIP: None
@@ -158,14 +160,14 @@ spec:
       volumes:
         - name: data-volume
           hostPath:
-            path: REPLACE_VOLUMES/tmp
+            path: /Users/hgupta/work/druid/tmp
       resources:
         requests:
           memory: "800Mi"
         limits:
           memory: "800Mi"
 
-    coordinators:
+    cs:
       # Optionally specify for running coordinator as Deployment
       # kind: Deployment
       nodeType: "coordinator"
@@ -182,7 +184,7 @@ spec:
           selector:
             nodeSpecUniqueStr: druid-tiny-cluster-coordinators
           metadata:
-            name: coordinator-%s-service
+            name: "%s-np"
         - spec:
             type: ClusterIP
             clusterIP: None
@@ -204,14 +206,14 @@ spec:
       volumes:
         - name: data-volume
           hostPath:
-            path: REPLACE_VOLUMES/tmp
+            path: /Users/hgupta/work/druid/tmp
       resources:
         requests:
           memory: "1G"
         limits:
           memory: "1G"
 
-    overlords:
+    os:
       # Optionally specify for running coordinator as Deployment
       # kind: Deployment
       nodeType: "overlord"
@@ -228,7 +230,7 @@ spec:
           selector:
             nodeSpecUniqueStr: druid-tiny-cluster-overlords
           metadata:
-            name: coordinator-%s-service
+            name: "%s-np"
         - spec:
             type: ClusterIP
             clusterIP: None
@@ -246,14 +248,14 @@ spec:
       volumes:
         - name: data-volume
           hostPath:
-            path: REPLACE_VOLUMES/tmp
+            path: /Users/hgupta/work/druid/tmp
       resources:
         requests:
           memory: "1G"
         limits:
           memory: "1G"
 
-    routers:
+    rs:
       nodeType: "router"
       druid.port: 8088
       services:
@@ -268,7 +270,7 @@ spec:
           selector:
             nodeSpecUniqueStr: druid-tiny-cluster-routers
           metadata:
-            name: router-%s-service
+            name: "%s-np"
         - spec:
             type: ClusterIP
             clusterIP: None

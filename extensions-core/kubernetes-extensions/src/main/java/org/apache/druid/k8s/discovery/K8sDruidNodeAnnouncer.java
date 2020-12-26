@@ -42,6 +42,7 @@ import java.util.Map;
  *
  * Labels -
  * druidDiscoveryAnnouncement-<nodeRole.getJsonName()> = true
+ * // TODO: maybe put a hash because encoded host/port might exceed 63 char label value limit?
  * druidDiscoveryAnnouncement-id = encodeHostPort(host:port)
  * druidDiscoveryAnnouncement-cluster-identifier = <clusterIdentifier>
  *

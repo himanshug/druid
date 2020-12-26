@@ -101,9 +101,11 @@ public class LeaderElectorAsyncWrapper implements Closeable
     }
 
     try {
+      LOGGER.info("Stoppig k8s LeaderElector...");
+      k8sLeaderElector.close();
       futureRef.get().cancel(true);
       executor.shutdownNow();
-      if (!executor.awaitTermination(10, TimeUnit.SECONDS)) {
+      if (!executor.awaitTermination(3, TimeUnit.SECONDS)) {
         LOGGER.warn("Failed to terminate [%s] executor.", this.getClass().getSimpleName());
       }
     }
