@@ -94,11 +94,11 @@ public class K8sDruidNodeDiscoveryProvider extends DruidNodeDiscoveryProvider
   @Override
   public BooleanSupplier getForNode(DruidNode node, NodeRole nodeRole)
   {
-    return () -> !k8sApiClient.listPods(
+    return () -> k8sApiClient.listPods(
         podInfo.getPodNamespace(),
         K8sDruidNodeAnnouncer.getLabelSelectorForNode(discoveryConfig, nodeRole, node),
         nodeRole
-    ).getDruidNodes().isEmpty();
+    ).getDruidNodes().containsKey(node.getHostAndPortToUse());
   }
 
   @Override

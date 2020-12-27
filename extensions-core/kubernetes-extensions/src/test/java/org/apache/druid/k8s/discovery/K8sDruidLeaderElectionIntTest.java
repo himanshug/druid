@@ -30,6 +30,7 @@ import org.apache.druid.java.util.common.logger.Logger;
 import org.apache.druid.java.util.emitter.EmittingLogger;
 import org.apache.druid.server.DruidNode;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.net.HttpURLConnection;
@@ -40,7 +41,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * This is not a UT, but very helpful when making changes to ensure things work with real K8S Api Server.
  * It is ignored in the build but checked in the reporitory for running manually by devs.
  */
-//@Ignore("Needs K8S API Server")
+@Ignore("Needs K8S API Server")
 public class K8sDruidLeaderElectionIntTest
 {
   private static final Logger LOGGER = new Logger(K8sDruidLeaderElectionIntTest.class);
