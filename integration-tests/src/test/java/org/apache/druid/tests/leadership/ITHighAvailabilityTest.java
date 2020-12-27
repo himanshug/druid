@@ -40,7 +40,7 @@ import org.apache.druid.testing.IntegrationTestingConfig;
 import org.apache.druid.testing.clients.CoordinatorResourceTestClient;
 import org.apache.druid.testing.guice.DruidTestModuleFactory;
 import org.apache.druid.testing.guice.TestClient;
-import org.apache.druid.testing.utils.DruidClusterAdminClient;
+import org.apache.druid.testing.utils.AbstractDruidClusterAdminClient;
 import org.apache.druid.testing.utils.ITRetryUtil;
 import org.apache.druid.testing.utils.SqlTestQueryHelper;
 import org.apache.druid.tests.TestNGGroup;
@@ -70,7 +70,7 @@ public class ITHighAvailabilityTest
   private IntegrationTestingConfig config;
 
   @Inject
-  private DruidClusterAdminClient druidClusterAdminClient;
+  private AbstractDruidClusterAdminClient druidClusterAdminClient;
 
   @Inject
   ServerDiscoveryFactory factory;

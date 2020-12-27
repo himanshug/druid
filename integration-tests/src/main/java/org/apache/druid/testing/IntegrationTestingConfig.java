@@ -19,6 +19,8 @@
 
 package org.apache.druid.testing;
 
+import org.apache.druid.testing.guice.DruidTestModule;
+
 import javax.annotation.Nullable;
 import java.util.Map;
 
@@ -94,6 +96,11 @@ public interface IntegrationTestingConfig
   default String getHistoricalInternalHost()
   {
     return getHistoricalHost();
+  }
+
+  default String getDruidDeploymentEnvType()
+  {
+    return DruidTestModule.DruidDeploymentEnvType.DOCKER.name();
   }
 
   String getCoordinatorUrl();

@@ -26,26 +26,18 @@ import com.github.dockerjava.core.DockerClientBuilder;
 import com.github.dockerjava.netty.NettyDockerCmdExecFactory;
 import com.google.inject.Inject;
 import org.apache.druid.java.util.common.ISE;
-import org.apache.druid.java.util.common.StringUtils;
 import org.apache.druid.java.util.common.logger.Logger;
 import org.apache.druid.java.util.http.client.HttpClient;
-import org.apache.druid.java.util.http.client.Request;
-import org.apache.druid.java.util.http.client.response.StatusResponseHandler;
-import org.apache.druid.java.util.http.client.response.StatusResponseHolder;
-import org.apache.druid.server.coordinator.CoordinatorDynamicConfig;
 import org.apache.druid.testing.IntegrationTestingConfig;
 import org.apache.druid.testing.guice.TestClient;
-import org.jboss.netty.handler.codec.http.HttpMethod;
-import org.jboss.netty.handler.codec.http.HttpResponseStatus;
 
-import java.net.URL;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
-public class DruidClusterAdminClient
+public class K8sDruidClusterAdminClient extends AbstractDruidClusterAdminClient
 {
-  private static final Logger LOG = new Logger(DruidClusterAdminClient.class);
+  private static final Logger LOG = new Logger(K8sDruidClusterAdminClient.class);
   private static final String COORDINATOR_DOCKER_CONTAINER_NAME = "/druid-coordinator";
   private static final String COORDINATOR_TWO_DOCKER_CONTAINER_NAME = "/druid-coordinator-two";
   private static final String HISTORICAL_DOCKER_CONTAINER_NAME = "/druid-historical";
@@ -55,101 +47,62 @@ public class DruidClusterAdminClient
   private static final String ROUTER_DOCKER_CONTAINER_NAME = "/druid-router";
   private static final String MIDDLEMANAGER_DOCKER_CONTAINER_NAME = "/druid-middlemanager";
 
-  private final ObjectMapper jsonMapper;
-  private final HttpClient httpClient;
-  private IntegrationTestingConfig config;
-
   @Inject
-  DruidClusterAdminClient(
+  public K8sDruidClusterAdminClient(
       ObjectMapper jsonMapper,
       @TestClient HttpClient httpClient,
       IntegrationTestingConfig config
   )
   {
-    this.jsonMapper = jsonMapper;
-    this.httpClient = httpClient;
-    this.config = config;
+    super(jsonMapper, httpClient, config);
   }
 
+  @Override
   public void restartCoordinatorContainer()
   {
     restartDockerContainer(COORDINATOR_DOCKER_CONTAINER_NAME);
   }
 
+  @Override
   public void restartCoordinatorTwoContainer()
   {
     restartDockerContainer(COORDINATOR_TWO_DOCKER_CONTAINER_NAME);
   }
 
+  @Override
   public void restartHistoricalContainer()
   {
     restartDockerContainer(HISTORICAL_DOCKER_CONTAINER_NAME);
   }
 
+  @Override
   public void restartOverlordContainer()
   {
     restartDockerContainer(OVERLORD_DOCKER_CONTAINER_NAME);
   }
 
+  @Override
   public void restartOverlordTwoContainer()
   {
     restartDockerContainer(OVERLORD_TWO_DOCKER_CONTAINER_NAME);
   }
 
+  @Override
   public void restartBrokerContainer()
   {
     restartDockerContainer(BROKER_DOCKER_CONTAINER_NAME);
   }
 
+  @Override
   public void restartRouterContainer()
   {
     restartDockerContainer(ROUTER_DOCKER_CONTAINER_NAME);
   }
 
+  @Override
   public void restartMiddleManagerContainer()
   {
     restartDockerContainer(MIDDLEMANAGER_DOCKER_CONTAINER_NAME);
-  }
-
-  public void waitUntilCoordinatorReady()
-  {
-    waitUntilInstanceReady(config.getCoordinatorUrl());
-    postDynamicConfig(CoordinatorDynamicConfig.builder()
-                                              .withLeadingTimeMillisBeforeCanMarkAsUnusedOvershadowedSegments(1)
-                                              .build());
-  }
-
-  public void waitUntilCoordinatorTwoReady()
-  {
-    waitUntilInstanceReady(config.getCoordinatorTwoUrl());
-    postDynamicConfig(CoordinatorDynamicConfig.builder()
-                                              .withLeadingTimeMillisBeforeCanMarkAsUnusedOvershadowedSegments(1)
-                                              .build());
-  }
-
-  public void waitUntilOverlordTwoReady()
-  {
-    waitUntilInstanceReady(config.getOverlordTwoUrl());
-  }
-
-  public void waitUntilHistoricalReady()
-  {
-    waitUntilInstanceReady(config.getHistoricalUrl());
-  }
-
-  public void waitUntilIndexerReady()
-  {
-    waitUntilInstanceReady(config.getOverlordUrl());
-  }
-
-  public void waitUntilBrokerReady()
-  {
-    waitUntilInstanceReady(config.getBrokerUrl());
-  }
-
-  public void waitUntilRouterReady()
-  {
-    waitUntilInstanceReady(config.getRouterUrl());
   }
 
   private void restartDockerContainer(String serviceName)
@@ -169,53 +122,5 @@ public class DruidClusterAdminClient
       throw new ISE("Cannot find docker container for " + serviceName);
     }
     dockerClient.restartContainerCmd(containerName.get()).exec();
-  }
-
-  private void waitUntilInstanceReady(final String host)
-  {
-    ITRetryUtil.retryUntilTrue(
-        () -> {
-          try {
-            StatusResponseHolder response = httpClient.go(
-                new Request(HttpMethod.GET, new URL(StringUtils.format("%s/status/health", host))),
-                StatusResponseHandler.getInstance()
-            ).get();
-
-            LOG.info("%s %s", response.getStatus(), response.getContent());
-            return response.getStatus().equals(HttpResponseStatus.OK);
-          }
-          catch (Throwable e) {
-            LOG.error(e, "");
-            return false;
-          }
-        },
-        "Waiting for instance to be ready: [" + host + "]"
-    );
-  }
-
-  private void postDynamicConfig(CoordinatorDynamicConfig coordinatorDynamicConfig)
-  {
-    ITRetryUtil.retryUntilTrue(
-        () -> {
-          try {
-            String url = StringUtils.format("%s/druid/coordinator/v1/config", config.getCoordinatorUrl());
-            StatusResponseHolder response = httpClient.go(
-                new Request(HttpMethod.POST, new URL(url)).setContent(
-                    "application/json",
-                    jsonMapper.writeValueAsBytes(coordinatorDynamicConfig)
-                ), StatusResponseHandler.getInstance()
-            ).get();
-
-            LOG.info("%s %s", response.getStatus(), response.getContent());
-            // if coordinator is not leader then it will return 307 instead of 200
-            return response.getStatus().equals(HttpResponseStatus.OK) || response.getStatus().equals(HttpResponseStatus.TEMPORARY_REDIRECT);
-          }
-          catch (Throwable e) {
-            LOG.error(e, "");
-            return false;
-          }
-        },
-        "Posting dynamic config after startup"
-    );
   }
 }
