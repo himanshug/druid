@@ -20,32 +20,33 @@
 package org.apache.druid.testing.utils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.dockerjava.api.DockerClient;
-import com.github.dockerjava.api.model.Container;
-import com.github.dockerjava.core.DockerClientBuilder;
-import com.github.dockerjava.netty.NettyDockerCmdExecFactory;
 import com.google.inject.Inject;
-import org.apache.druid.java.util.common.ISE;
+import io.kubernetes.client.openapi.ApiException;
+import io.kubernetes.client.openapi.apis.CoreV1Api;
+import io.kubernetes.client.util.Config;
+import org.apache.druid.java.util.common.RE;
 import org.apache.druid.java.util.common.logger.Logger;
 import org.apache.druid.java.util.http.client.HttpClient;
 import org.apache.druid.testing.IntegrationTestingConfig;
 import org.apache.druid.testing.guice.TestClient;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
+import java.io.IOException;
 
 public class K8sDruidClusterAdminClient extends AbstractDruidClusterAdminClient
 {
   private static final Logger LOG = new Logger(K8sDruidClusterAdminClient.class);
-  private static final String COORDINATOR_DOCKER_CONTAINER_NAME = "/druid-coordinator";
-  private static final String COORDINATOR_TWO_DOCKER_CONTAINER_NAME = "/druid-coordinator-two";
-  private static final String HISTORICAL_DOCKER_CONTAINER_NAME = "/druid-historical";
-  private static final String OVERLORD_DOCKER_CONTAINER_NAME = "/druid-overlord";
-  private static final String OVERLORD_TWO_DOCKER_CONTAINER_NAME = "/druid-overlord-two";
-  private static final String BROKER_DOCKER_CONTAINER_NAME = "/druid-broker";
-  private static final String ROUTER_DOCKER_CONTAINER_NAME = "/druid-router";
-  private static final String MIDDLEMANAGER_DOCKER_CONTAINER_NAME = "/druid-middlemanager";
+
+  private static final String NAMESPACE = "default";
+  private static final String COORDINATOR_POD_NAME = "/druid-coordinator";
+  private static final String COORDINATOR_TWO_POD_NAME = "/druid-coordinator-two";
+  private static final String HISTORICAL_POD_NAME = "/druid-historical";
+  private static final String OVERLORD_POD_NAME = "/druid-overlord";
+  private static final String OVERLORD_TWO_POD_NAME = "/druid-overlord-two";
+  private static final String BROKER_POD_NAME = "/druid-broker";
+  private static final String ROUTER_POD_NAME = "/druid-router";
+  private static final String MIDDLEMANAGER_POD_NAME = "/druid-middlemanager";
+
+  private final CoreV1Api k8sClient;
 
   @Inject
   public K8sDruidClusterAdminClient(
@@ -55,72 +56,81 @@ public class K8sDruidClusterAdminClient extends AbstractDruidClusterAdminClient
   )
   {
     super(jsonMapper, httpClient, config);
+
+    try {
+      this.k8sClient = new CoreV1Api(Config.defaultClient());
+    }
+    catch (IOException ex) {
+      throw new RE(ex,"Failed to create K8s ApiClient instance");
+    }
   }
 
   @Override
   public void restartCoordinatorContainer()
   {
-    restartDockerContainer(COORDINATOR_DOCKER_CONTAINER_NAME);
+    restartPod(COORDINATOR_POD_NAME);
   }
 
   @Override
   public void restartCoordinatorTwoContainer()
   {
-    restartDockerContainer(COORDINATOR_TWO_DOCKER_CONTAINER_NAME);
+    restartPod(COORDINATOR_TWO_POD_NAME);
   }
 
   @Override
   public void restartHistoricalContainer()
   {
-    restartDockerContainer(HISTORICAL_DOCKER_CONTAINER_NAME);
+    restartPod(HISTORICAL_POD_NAME);
   }
 
   @Override
   public void restartOverlordContainer()
   {
-    restartDockerContainer(OVERLORD_DOCKER_CONTAINER_NAME);
+    restartPod(OVERLORD_POD_NAME);
   }
 
   @Override
   public void restartOverlordTwoContainer()
   {
-    restartDockerContainer(OVERLORD_TWO_DOCKER_CONTAINER_NAME);
+    restartPod(OVERLORD_TWO_POD_NAME);
   }
 
   @Override
   public void restartBrokerContainer()
   {
-    restartDockerContainer(BROKER_DOCKER_CONTAINER_NAME);
+    restartPod(BROKER_POD_NAME);
   }
 
   @Override
   public void restartRouterContainer()
   {
-    restartDockerContainer(ROUTER_DOCKER_CONTAINER_NAME);
+    restartPod(ROUTER_POD_NAME);
   }
 
   @Override
   public void restartMiddleManagerContainer()
   {
-    restartDockerContainer(MIDDLEMANAGER_DOCKER_CONTAINER_NAME);
+    restartPod(MIDDLEMANAGER_POD_NAME);
   }
 
-  private void restartDockerContainer(String serviceName)
+  private void restartPod(String podName)
   {
-    DockerClient dockerClient = DockerClientBuilder.getInstance()
-                                                   .withDockerCmdExecFactory((new NettyDockerCmdExecFactory())
-                                                                                 .withConnectTimeout(10 * 1000))
-                                                   .build();
-    List<Container> containers = dockerClient.listContainersCmd().exec();
-    Optional<String> containerName = containers.stream()
-                                               .filter(container -> Arrays.asList(container.getNames()).contains(serviceName))
-                                               .findFirst()
-                                               .map(container -> container.getId());
-
-    if (!containerName.isPresent()) {
-      LOG.error("Cannot find docker container for " + serviceName);
-      throw new ISE("Cannot find docker container for " + serviceName);
+    // We only need to delete the pod, k8s StatefulSet controller will automatically recreate it.
+    try {
+      k8sClient.deleteNamespacedPod(
+          podName,
+          NAMESPACE,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+      );
+      LOG.info("Deleted Pod [%s].", podName);
     }
-    dockerClient.restartContainerCmd(containerName.get()).exec();
+    catch (ApiException ex) {
+      throw new RE(ex, "Failed to delete pod [%s]", podName);
+    }
   }
 }
