@@ -4,7 +4,7 @@
   "broker_tls_url" : "http://localhost:30100",
   "router_host" : "localhost",
   "router_port" : "30400",
-  "router_tls_url" : "http://localhost:30400",
+  "router_tls_url" : "http://localhost:8088",
   "indexer_host" : "localhost",
   "indexer_port" : "30400",
   "historical_host" : "localhost",
@@ -12,5 +12,6 @@
   "coordinator_host" : "localhost",
   "coordinator_port" : "30400",
   "middlemanager_host": "localhost",
-  "zookeeper_hosts": "localhost:30600"
+  "zookeeper_hosts": "localhost:30600",
+  "druidDeploymentEnvType": "k8s"
 }

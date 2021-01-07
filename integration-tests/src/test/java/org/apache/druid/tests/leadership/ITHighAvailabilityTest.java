@@ -24,7 +24,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.inject.Inject;
 import org.apache.druid.cli.CliCustomNodeRole;
 import org.apache.druid.common.config.NullHandling;
-import org.apache.druid.curator.discovery.ServerDiscoveryFactory;
 import org.apache.druid.discovery.DiscoveryDruidNode;
 import org.apache.druid.discovery.DruidNodeDiscovery;
 import org.apache.druid.discovery.DruidNodeDiscoveryProvider;
@@ -71,9 +70,6 @@ public class ITHighAvailabilityTest
 
   @Inject
   private AbstractDruidClusterAdminClient druidClusterAdminClient;
-
-  @Inject
-  ServerDiscoveryFactory factory;
 
   @Inject
   DruidNodeDiscoveryProvider druidNodeDiscovery;
