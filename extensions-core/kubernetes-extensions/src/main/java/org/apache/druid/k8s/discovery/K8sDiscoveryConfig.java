@@ -88,7 +88,7 @@ public class K8sDiscoveryConfig
     this.overlordLeaderElectionConfigMapNamespace = overlordLeaderElectionConfigMapNamespace;
 
     this.leaseDuration = leaseDuration == null ? Duration.millis(60000) : leaseDuration;
-    this.renewDeadline = renewDeadline == null ? Duration.millis(17000) : renewDeadline;
+    this.renewDeadline = renewDeadline == null ? Duration.millis(47000) : renewDeadline;
     this.retryPeriod = retryPeriod == null ? Duration.millis(5000) : retryPeriod;
   }
 
