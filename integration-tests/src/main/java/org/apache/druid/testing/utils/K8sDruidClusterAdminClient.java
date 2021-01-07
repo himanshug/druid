@@ -61,7 +61,7 @@ public class K8sDruidClusterAdminClient extends AbstractDruidClusterAdminClient
       this.k8sClient = new CoreV1Api(Config.defaultClient());
     }
     catch (IOException ex) {
-      throw new RE(ex,"Failed to create K8s ApiClient instance");
+      throw new RE(ex, "Failed to create K8s ApiClient instance");
     }
   }
 
