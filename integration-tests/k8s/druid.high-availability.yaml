@@ -233,7 +233,7 @@ spec:
           selector:
             nodeSpecUniqueStr: druid-tiny-cluster-overlords
           metadata:
-            name: coordinator-%s-service
+            name: overlord-%s-service
         - spec:
             type: ClusterIP
             clusterIP: None
