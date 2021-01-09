@@ -38,6 +38,7 @@ docker build -t druid/cluster:v1 -f distribution/docker/DockerfileBuildTarAdvanc
 mkdir tmp
 chmod 777 tmp
 
+# spec name needs to come from argument for high availability test
 $KUBECTL apply -f integration-tests/k8s/role-and-binding.yaml
 sed -i "s|REPLACE_VOLUMES|`pwd`|g" integration-tests/k8s/tiny-cluster.yaml
 $KUBECTL apply -f integration-tests/k8s/tiny-cluster.yaml

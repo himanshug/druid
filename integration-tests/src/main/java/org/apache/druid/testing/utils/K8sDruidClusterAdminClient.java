@@ -37,11 +37,11 @@ public class K8sDruidClusterAdminClient extends AbstractDruidClusterAdminClient
   private static final Logger LOG = new Logger(K8sDruidClusterAdminClient.class);
 
   private static final String NAMESPACE = "default";
-  private static final String COORDINATOR_POD_NAME = "druid-tiny-cluster-coordinators-0";
-  private static final String COORDINATOR_TWO_POD_NAME = "druid-tiny-cluster-coordinators-0";
+  private static final String COORDINATOR_POD_NAME = "druid-tiny-cluster-coordinator1-0";
+  private static final String COORDINATOR_TWO_POD_NAME = "druid-tiny-cluster-coordinator2-0";
   private static final String HISTORICAL_POD_NAME = "druid-tiny-cluster-historicals-0";
-  private static final String OVERLORD_POD_NAME = "druid-tiny-cluster-overlords-0";
-  private static final String OVERLORD_TWO_POD_NAME = "druid-tiny-cluster-overlords-1";
+  private static final String OVERLORD_POD_NAME = "druid-tiny-cluster-overlord1-0";
+  private static final String OVERLORD_TWO_POD_NAME = "druid-tiny-cluster-overlord2-0";
   private static final String BROKER_POD_NAME = "druid-tiny-cluster-brokers-0";
   private static final String ROUTER_POD_NAME = "druid-tiny-cluster-routers-0";
   private static final String MIDDLEMANAGER_POD_NAME = "druid-tiny-cluster-middlemanagers-0";
