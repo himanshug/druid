@@ -170,7 +170,7 @@ spec:
         limits:
           memory: "800Mi"
 
-    coordinators:
+    coordinator1:
       # Optionally specify for running coordinator as Deployment
       # kind: Deployment
       nodeType: "coordinator"
@@ -187,12 +187,12 @@ spec:
           selector:
             nodeSpecUniqueStr: druid-tiny-cluster-coordinators
           metadata:
-            name: coordinator-%s-service
+            name: coordinator1-%s-service
         - spec:
             type: ClusterIP
             clusterIP: None
       nodeConfigMountPath: "/opt/druid/conf/druid/cluster/master/coordinator-overlord"
-      replicas: 2
+      replicas: 1
       runtime.properties: |
         druid.service=druid/coordinator
 
@@ -216,7 +216,53 @@ spec:
         limits:
           memory: "1G"
 
-    overlords:
+    coordinator2:
+      # Optionally specify for running coordinator as Deployment
+      # kind: Deployment
+      nodeType: "coordinator"
+      druid.port: 8088
+      services:
+        - spec:
+            type: NodePort
+            ports:
+              - name: coordinator-service-port
+                nodePort: 30201
+                port: 8088
+                protocol: TCP
+                targetPort: 8088
+          selector:
+            nodeSpecUniqueStr: druid-tiny-cluster-coordinators
+          metadata:
+            name: coordinator2-%s-service
+        - spec:
+            type: ClusterIP
+            clusterIP: None
+      nodeConfigMountPath: "/opt/druid/conf/druid/cluster/master/coordinator-overlord"
+      replicas: 1
+      runtime.properties: |
+        druid.service=druid/coordinator
+
+        # HTTP server threads
+        druid.coordinator.startDelay=PT30S
+        druid.coordinator.period=PT30S
+
+      extra.jvm.options: |-
+        -Xmx800m
+        -Xms800m
+      volumeMounts:
+        - mountPath: /druid/data
+          name: data-volume
+      volumes:
+        - name: data-volume
+          hostPath:
+            path: REPLACE_VOLUMES/tmp
+      resources:
+        requests:
+          memory: "1G"
+        limits:
+          memory: "1G"
+
+    overlord1:
       # Optionally specify for running coordinator as Deployment
       # kind: Deployment
       nodeType: "overlord"
@@ -226,19 +272,19 @@ spec:
             type: NodePort
             ports:
               - name: overlord-service-port
-                nodePort: 30201
+                nodePort: 30210
                 port: 8088
                 protocol: TCP
                 targetPort: 8088
           selector:
             nodeSpecUniqueStr: druid-tiny-cluster-overlords
           metadata:
-            name: overlord-%s-service
+            name: overlord1-%s-service
         - spec:
             type: ClusterIP
             clusterIP: None
       nodeConfigMountPath: "/opt/druid/conf/druid/cluster/master/coordinator-overlord"
-      replicas: 2
+      replicas: 1
       runtime.properties: |
         druid.service=druid/overlord
         druid.indexer.queue.startDelay=PT30S
@@ -257,7 +303,47 @@ spec:
           memory: "1G"
         limits:
           memory: "1G"
-
+    overlord2:
+      # Optionally specify for running coordinator as Deployment
+      # kind: Deployment
+      nodeType: "overlord"
+      druid.port: 8088
+      services:
+        - spec:
+            type: NodePort
+            ports:
+              - name: overlord-service-port
+                nodePort: 30211
+                port: 8088
+                protocol: TCP
+                targetPort: 8088
+          selector:
+            nodeSpecUniqueStr: druid-tiny-cluster-overlords
+          metadata:
+            name: overlord2-%s-service
+        - spec:
+            type: ClusterIP
+            clusterIP: None
+      nodeConfigMountPath: "/opt/druid/conf/druid/cluster/master/coordinator-overlord"
+      replicas: 1
+      runtime.properties: |
+        druid.service=druid/overlord
+        druid.indexer.queue.startDelay=PT30S
+      extra.jvm.options: |-
+        -Xmx800m
+        -Xms800m
+      volumeMounts:
+        - mountPath: /druid/data
+          name: data-volume
+      volumes:
+        - name: data-volume
+          hostPath:
+            path: REPLACE_VOLUMES/tmp
+      resources:
+        requests:
+          memory: "1G"
+        limits:
+          memory: "1G"
     routers:
       nodeType: "router"
       druid.port: 8088
