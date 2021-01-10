@@ -392,7 +392,6 @@ spec:
       replicas: 1
       runtime.properties: |
         druid.service=druid/router
-        druid.plaintextPort=8088
 
         # HTTP proxy
         druid.router.http.numConnections=50

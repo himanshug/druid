@@ -88,7 +88,7 @@ public class ITHighAvailabilityTest
   @Inject
   @TestClient
   HttpClient httpClient;
-  
+
   public void testLeadershipChanges() throws Exception
   {
     int runCount = 0;
