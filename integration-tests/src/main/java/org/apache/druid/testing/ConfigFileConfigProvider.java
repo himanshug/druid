@@ -79,7 +79,8 @@ public class ConfigFileConfigProvider implements IntegrationTestingConfigProvide
   private String hadoopGcsCredentialsPath;
   private String azureKey;
   private String streamEndpoint;
-  private String druidDeploymentEnvType;
+  private DruidTestModule.DruidDeploymentEnvType druidDeploymentEnvType;
+  private String druidClusterHost;
 
   @JsonCreator
   ConfigFileConfigProvider(@JsonProperty("configFile") String configFile)
@@ -260,10 +261,14 @@ public class ConfigFileConfigProvider implements IntegrationTestingConfigProvide
 
     middleManagerHost = props.get("middlemanager_host");
 
-    druidDeploymentEnvType = props.get("druid_deployment_env_type");
-    if (druidDeploymentEnvType == null) {
-      druidDeploymentEnvType = DruidTestModule.DruidDeploymentEnvType.DOCKER.toString();
+    String druidDeploymentEnvTypeStr = props.get("druid_deployment_env_type");
+    if (druidDeploymentEnvTypeStr != null) {
+      druidDeploymentEnvType = DruidTestModule.DruidDeploymentEnvType.valueOf(druidDeploymentEnvTypeStr);
+    } else {
+      druidDeploymentEnvType = DruidTestModule.DruidDeploymentEnvType.UNKNOWN;
     }
+
+    druidClusterHost = props.get("druid_cluster_host");
 
     zookeeperHosts = props.get("zookeeper_hosts");
     kafkaHost = props.get("kafka_host") + ":" + props.get("kafka_port");
@@ -527,7 +532,7 @@ public class ConfigFileConfigProvider implements IntegrationTestingConfigProvide
       }
 
       @Override
-      public String getDruidDeploymentEnvType()
+      public DruidTestModule.DruidDeploymentEnvType getDruidDeploymentEnvType()
       {
         return druidDeploymentEnvType;
       }
@@ -605,9 +610,9 @@ public class ConfigFileConfigProvider implements IntegrationTestingConfigProvide
       }
 
       @Override
-      public boolean isDocker()
+      public String getDruidClusterHost()
       {
-        return false;
+        return druidClusterHost;
       }
     };
   }

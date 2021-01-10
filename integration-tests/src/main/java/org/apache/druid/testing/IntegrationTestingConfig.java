@@ -98,9 +98,9 @@ public interface IntegrationTestingConfig
     return getHistoricalHost();
   }
 
-  default String getDruidDeploymentEnvType()
+  default DruidTestModule.DruidDeploymentEnvType getDruidDeploymentEnvType()
   {
-    return DruidTestModule.DruidDeploymentEnvType.DOCKER.name();
+    return DruidTestModule.DruidDeploymentEnvType.UNKNOWN;
   }
 
   String getCoordinatorUrl();
@@ -171,11 +171,6 @@ public interface IntegrationTestingConfig
 
   String getStreamEndpoint();
 
-  boolean isDocker();
-
   @Nullable
-  default String getDockerHost()
-  {
-    return null;
-  }
+  String getDruidClusterHost();
 }

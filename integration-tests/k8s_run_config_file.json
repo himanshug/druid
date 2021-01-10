@@ -26,5 +26,6 @@
   "overlord_two_internal_host": "druid-tiny-cluster-overlord2-0.overlord2-druid-tiny-cluster-overlord2-service.default.svc.cluster.local",
   "middlemanager_host": "localhost",
   "zookeeper_hosts": "localhost:30600",
-  "druid_deployment_env_type": "K8S"
+  "druid_deployment_env_type": "K8S",
+  "druid_cluster_host": "localhost"
 }

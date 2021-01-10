@@ -51,7 +51,8 @@ public class DruidTestModule implements Module
   public enum DruidDeploymentEnvType
   {
     K8S,
-    DOCKER
+    DOCKER,
+    UNKNOWN
   }
 
   @Override
@@ -99,7 +100,7 @@ public class DruidTestModule implements Module
       IntegrationTestingConfig config
   )
   {
-    DruidDeploymentEnvType envType = DruidDeploymentEnvType.valueOf(config.getDruidDeploymentEnvType());
+    DruidDeploymentEnvType envType = config.getDruidDeploymentEnvType();
     if (envType == DruidDeploymentEnvType.K8S) {
       return new K8sDruidClusterAdminClient(jsonMapper, httpClient, config);
     } else {
