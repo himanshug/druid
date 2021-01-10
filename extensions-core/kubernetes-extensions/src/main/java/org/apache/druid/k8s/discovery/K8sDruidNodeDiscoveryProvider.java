@@ -219,6 +219,11 @@ public class K8sDruidNodeDiscoveryProvider extends DruidNodeDiscoveryProvider
       String labelSelector = K8sDruidNodeAnnouncer.getLabelSelectorForNodeRole(discoveryConfig, nodeRole);
       boolean cacheInitialized = false;
 
+      if (!lifecycleLock.awaitStarted()) {
+        LOGGER.error("Lifecycle not started, Exited Watch for NodeRole [%s].", nodeRole);
+        return;
+      }
+
       while (lifecycleLock.awaitStarted(1, TimeUnit.MILLISECONDS)) {
         try {
           DiscoveryDruidNodeList list = k8sApiClient.listPods(podInfo.getPodNamespace(), labelSelector, nodeRole);

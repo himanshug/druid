@@ -25,6 +25,7 @@ import org.apache.druid.common.config.NullHandling;
 import org.apache.druid.discovery.DiscoveryDruidNode;
 import org.apache.druid.discovery.DruidNodeDiscoveryProvider;
 import org.apache.druid.java.util.common.ISE;
+import org.apache.druid.java.util.common.RetryUtils;
 import org.apache.druid.java.util.common.StringUtils;
 import org.apache.druid.java.util.common.logger.Logger;
 import org.apache.druid.java.util.http.client.HttpClient;
@@ -56,7 +57,7 @@ public class ITHighAvailabilityTest
 {
   private static final Logger LOG = new Logger(ITHighAvailabilityTest.class);
   private static final String SYSTEM_QUERIES_RESOURCE = "/queries/high_availability_sys.json";
-  private static final int NUM_LEADERSHIP_SWAPS = 0;
+  private static final int NUM_LEADERSHIP_SWAPS = 3;
 
   @Inject
   private IntegrationTestingConfig config;
@@ -88,9 +89,12 @@ public class ITHighAvailabilityTest
     String previousOverlordLeader = null;
     // fetch current leaders, make sure queries work, then swap leaders and do it again
     do {
+      LOG.info("%dth round of leader testing.", runCount);
+
       String coordinatorLeader = getLeader("coordinator");
       String overlordLeader = getLeader("indexer");
 
+      LOG.info("Coordinator Leader [%s/%s], Overlord Leader [%s/%s]", previousCoordinatorLeader, coordinatorLeader, previousOverlordLeader, overlordLeader);
       // we expect leadership swap to happen
       Assert.assertNotEquals(previousCoordinatorLeader, coordinatorLeader);
       Assert.assertNotEquals(previousOverlordLeader, overlordLeader);
@@ -104,9 +108,18 @@ public class ITHighAvailabilityTest
           overlordLeader,
           coordinatorLeader
       );
-      queryHelper.testQueriesFromString(queries);
+
+      RetryUtils.retry(
+          () -> {
+            queryHelper.testQueriesFromString(queries);
+            return true;
+          },
+          (Throwable th) -> true,
+          10
+      );
 
       swapLeadersAndWait(coordinatorLeader, overlordLeader);
+      LOG.info("Leaders swapped.");
     } while (runCount++ < NUM_LEADERSHIP_SWAPS);
   }
 
@@ -157,6 +170,23 @@ public class ITHighAvailabilityTest
   }
 
   private String getLeader(String service)
+  {
+    try {
+      return RetryUtils.retry(
+          () -> tryGetLeader(service),
+          (Throwable t) -> true,
+          5
+      );
+    }
+    catch (RuntimeException e) {
+      throw e;
+    }
+    catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  private String tryGetLeader(String service)
   {
     try {
       StatusResponseHolder response = httpClient.go(

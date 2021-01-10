@@ -76,6 +76,11 @@ public class LeaderElectorAsyncWrapper implements Closeable
       executor = Execs.singleThreaded(this.getClass().getSimpleName());
       futureRef.set(executor.submit(
           () -> {
+            if (!lifecycleLock.awaitStarted()) {
+              LOGGER.error("Lifecycle not started, LeaderElection will not run.");
+              return;
+            }
+
             while (lifecycleLock.awaitStarted(1, TimeUnit.MILLISECONDS)) {
               try {
                 k8sLeaderElector.run(startLeadingHook, stopLeadingHook);
