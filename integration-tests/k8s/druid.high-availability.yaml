@@ -13,6 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+#
+# For all pods, make sure that service port matches internal port. ITHighAvailabilityTest config assumes that the
+# service is reachable at localhost:DiscoveryDruidNode.getDruidNode().getPlaintextPort()
+#
 apiVersion: "druid.apache.org/v1alpha1"
 kind: "Druid"
 metadata:
@@ -28,10 +32,6 @@ spec:
     release: alpha
   podAnnotations:
     dummy: k8s_extn_needs_atleast_one_annotation
-  readinessProbe:
-    httpGet:
-      path: /status/health
-      port: 8088
   securityContext:
     fsGroup: 0
     runAsUser: 0
@@ -125,16 +125,20 @@ spec:
       # Optionally specify for broker nodes
       # imagePullSecrets:
       # - name: tutu
-      druid.port: 8088
+      druid.port: 30100
+      readinessProbe:
+        httpGet:
+          path: /status/health
+          port: 30100
       services:
         - spec:
             type: NodePort
             ports:
               - name: broker-service-port
                 nodePort: 30100
-                port: 8088
+                port: 30100
                 protocol: TCP
-                targetPort: 8088
+                targetPort: 30100
           selector:
             nodeSpecUniqueStr: druid-tiny-cluster-brokers
           metadata:
@@ -175,16 +179,20 @@ spec:
       # Optionally specify for running coordinator as Deployment
       # kind: Deployment
       nodeType: "coordinator"
-      druid.port: 8088
+      druid.port: 30200
+      readinessProbe:
+        httpGet:
+          path: /status/health
+          port: 30200
       services:
         - spec:
             type: NodePort
             ports:
               - name: coordinator-service-port
                 nodePort: 30200
-                port: 8088
+                port: 30200
                 protocol: TCP
-                targetPort: 8088
+                targetPort: 30200
           selector:
             nodeSpecUniqueStr: druid-tiny-cluster-coordinators
           metadata:
@@ -221,16 +229,20 @@ spec:
       # Optionally specify for running coordinator as Deployment
       # kind: Deployment
       nodeType: "coordinator"
-      druid.port: 8088
+      druid.port: 30201
+      readinessProbe:
+        httpGet:
+          path: /status/health
+          port: 30201
       services:
         - spec:
             type: NodePort
             ports:
               - name: coordinator-service-port
                 nodePort: 30201
-                port: 8088
+                port: 30201
                 protocol: TCP
-                targetPort: 8088
+                targetPort: 30201
           selector:
             nodeSpecUniqueStr: druid-tiny-cluster-coordinators
           metadata:
@@ -267,16 +279,20 @@ spec:
       # Optionally specify for running coordinator as Deployment
       # kind: Deployment
       nodeType: "overlord"
-      druid.port: 8088
+      druid.port: 30210
+      readinessProbe:
+        httpGet:
+          path: /status/health
+          port: 30210
       services:
         - spec:
             type: NodePort
             ports:
               - name: overlord-service-port
                 nodePort: 30210
-                port: 8088
+                port: 30210
                 protocol: TCP
-                targetPort: 8088
+                targetPort: 30210
           selector:
             nodeSpecUniqueStr: druid-tiny-cluster-overlords
           metadata:
@@ -308,16 +324,20 @@ spec:
       # Optionally specify for running coordinator as Deployment
       # kind: Deployment
       nodeType: "overlord"
-      druid.port: 8088
+      druid.port: 30211
+      readinessProbe:
+        httpGet:
+          path: /status/health
+          port: 30211
       services:
         - spec:
             type: NodePort
             ports:
               - name: overlord-service-port
                 nodePort: 30211
-                port: 8088
+                port: 30211
                 protocol: TCP
-                targetPort: 8088
+                targetPort: 30211
           selector:
             nodeSpecUniqueStr: druid-tiny-cluster-overlords
           metadata:
@@ -347,16 +367,20 @@ spec:
           memory: "1G"
     routers:
       nodeType: "router"
-      druid.port: 8088
+      druid.port: 30400
+      readinessProbe:
+        httpGet:
+          path: /status/health
+          port: 30400
       services:
         - spec:
             type: NodePort
             ports:
               - name: router-service-port
                 nodePort: 30400
-                port: 8088
+                port: 30400
                 protocol: TCP
-                targetPort: 8088
+                targetPort: 30400
           selector:
             nodeSpecUniqueStr: druid-tiny-cluster-routers
           metadata:
