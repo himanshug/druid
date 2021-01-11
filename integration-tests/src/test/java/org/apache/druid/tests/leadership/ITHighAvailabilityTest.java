@@ -19,14 +19,12 @@
 
 package org.apache.druid.tests.leadership;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.ImmutableList;
 import com.google.inject.Inject;
-import org.apache.druid.cli.CliCustomNodeRole;
 import org.apache.druid.common.config.NullHandling;
-import org.apache.druid.discovery.DiscoveryDruidNode;
-import org.apache.druid.discovery.DruidNodeDiscovery;
-import org.apache.druid.discovery.DruidNodeDiscoveryProvider;
 import org.apache.druid.discovery.NodeRole;
 import org.apache.druid.java.util.common.ISE;
 import org.apache.druid.java.util.common.RetryUtils;
@@ -36,6 +34,7 @@ import org.apache.druid.java.util.http.client.HttpClient;
 import org.apache.druid.java.util.http.client.Request;
 import org.apache.druid.java.util.http.client.response.StatusResponseHandler;
 import org.apache.druid.java.util.http.client.response.StatusResponseHolder;
+import org.apache.druid.server.DruidNode;
 import org.apache.druid.testing.IntegrationTestingConfig;
 import org.apache.druid.testing.clients.CoordinatorResourceTestClient;
 import org.apache.druid.testing.guice.DruidTestModule;
@@ -45,7 +44,6 @@ import org.apache.druid.testing.utils.AbstractDruidClusterAdminClient;
 import org.apache.druid.testing.utils.ITRetryUtil;
 import org.apache.druid.testing.utils.SqlTestQueryHelper;
 import org.apache.druid.tests.TestNGGroup;
-import org.apache.druid.tests.indexer.AbstractIndexerTest;
 import org.jboss.netty.handler.codec.http.HttpMethod;
 import org.jboss.netty.handler.codec.http.HttpResponseStatus;
 import org.testng.Assert;
@@ -54,8 +52,10 @@ import org.testng.annotations.Test;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
@@ -74,9 +74,6 @@ public class ITHighAvailabilityTest
   private AbstractDruidClusterAdminClient druidClusterAdminClient;
 
   @Inject
-  DruidNodeDiscoveryProvider druidNodeDiscovery;
-
-  @Inject
   CoordinatorResourceTestClient coordinatorClient;
 
   @Inject
@@ -89,70 +86,23 @@ public class ITHighAvailabilityTest
   @TestClient
   HttpClient httpClient;
 
-  public void testLeadershipChanges() throws Exception
-  {
-    int runCount = 0;
-    String previousCoordinatorLeader = null;
-    String previousOverlordLeader = null;
-    // fetch current leaders, make sure queries work, then swap leaders and do it again
-    do {
-      LOG.info("%dth round of leader testing.", runCount);
-
-      String coordinatorLeader = getLeader("coordinator");
-      LOG.info("Coordinator Leader previous[%s], current[%s]", previousCoordinatorLeader, coordinatorLeader);
-
-      String overlordLeader = getLeader("indexer");
-      LOG.info("Overlord Leader previous[%s], current[%s]", previousOverlordLeader, overlordLeader);
-
-      // we expect leadership swap to happen
-      Assert.assertNotEquals(previousCoordinatorLeader, coordinatorLeader);
-      Assert.assertNotEquals(previousOverlordLeader, overlordLeader);
-
-      previousCoordinatorLeader = coordinatorLeader;
-      previousOverlordLeader = overlordLeader;
-
-      String queries = fillTemplate(
-          config,
-          AbstractIndexerTest.getResourceAsString(SYSTEM_QUERIES_RESOURCE),
-          overlordLeader,
-          coordinatorLeader
-      );
-
-      RetryUtils.retry(
-          () -> {
-            queryHelper.testQueriesFromString(queries);
-            return true;
-          },
-          (Throwable th) -> true,
-          10
-      );
-
-      swapLeadersAndWait(coordinatorLeader, overlordLeader);
-      LOG.info("Leaders swapped.");
-    } while (runCount++ < NUM_LEADERSHIP_SWAPS);
-  }
-
   @Test
   public void testDiscoveryAndSelfDiscovery()
   {
     ITRetryUtil.retryUntil(
         () -> {
-          List<DruidNodeDiscovery> disco = ImmutableList.of(
-              druidNodeDiscovery.getForNodeRole(NodeRole.COORDINATOR),
-              druidNodeDiscovery.getForNodeRole(NodeRole.OVERLORD),
-              druidNodeDiscovery.getForNodeRole(NodeRole.HISTORICAL),
-              druidNodeDiscovery.getForNodeRole(NodeRole.MIDDLE_MANAGER),
-              druidNodeDiscovery.getForNodeRole(NodeRole.INDEXER),
-              druidNodeDiscovery.getForNodeRole(NodeRole.BROKER),
-              druidNodeDiscovery.getForNodeRole(NodeRole.ROUTER)
-          );
-
-          int servicesDiscovered = 0;
-          for (DruidNodeDiscovery nodeRole : disco) {
-            Collection<DiscoveryDruidNode> nodes = nodeRole.getAllNodes();
-            servicesDiscovered += testSelfDiscovery(nodes);
+          Map<String, List<SimpleDruidNode>> clusterNodes = getClusterNodes();
+          if (clusterNodes.get(NodeRole.COORDINATOR.getJsonName()).size() < 2 ||
+              clusterNodes.get(NodeRole.OVERLORD.getJsonName()).size() < 2 ||
+              clusterNodes.get(NodeRole.BROKER.getJsonName()).size() < 1 ||
+              clusterNodes.get(NodeRole.ROUTER.getJsonName()).size() < 1) {
+            return false;
           }
-          return servicesDiscovered > 5;
+
+          List<SimpleDruidNode> allNodes = new ArrayList<>();
+          clusterNodes.values().forEach((nodes) -> allNodes.addAll(nodes));
+
+          return allNodes.size() == testSelfDiscovery(allNodes);
         },
         true,
         TimeUnit.SECONDS.toMillis(5),
@@ -161,34 +111,19 @@ public class ITHighAvailabilityTest
     );
   }
 
-  public void testCustomDiscovery()
-  {
-    ITRetryUtil.retryUntil(
-        () -> {
-          DruidNodeDiscovery customDisco =
-              druidNodeDiscovery.getForNodeRole(new NodeRole(CliCustomNodeRole.SERVICE_NAME));
-          int count = testSelfDiscovery(customDisco.getAllNodes());
-          return count > 0;
-        },
-        true,
-        TimeUnit.SECONDS.toMillis(5),
-        60,
-        "Custom service discovered"
-    );
-  }
-
-  private int testSelfDiscovery(Collection<DiscoveryDruidNode> nodes)
+  private int testSelfDiscovery(Collection<SimpleDruidNode> nodes)
       throws MalformedURLException, ExecutionException, InterruptedException
   {
     int count = 0;
 
-    for (DiscoveryDruidNode node : nodes) {
+    for (SimpleDruidNode node : nodes) {
       String host = config.getDruidDeploymentEnvType() == DruidTestModule.DruidDeploymentEnvType.UNKNOWN ?
-                    node.getDruidNode().getHost() : config.getDruidClusterHost();
+                    node.getHost() : config.getDruidClusterHost();
+
       final String location = StringUtils.format(
           "http://%s:%s/status/selfDiscovered",
           host,
-          node.getDruidNode().getPlaintextPort()
+          node.getPlaintextPort()
       );
       LOG.info("testing self discovery %s", location);
       StatusResponseHolder response = httpClient.go(
@@ -272,6 +207,41 @@ public class ITHighAvailabilityTest
     }
   }
 
+  private Map<String, List<SimpleDruidNode>> getClusterNodes()
+  {
+    try {
+      StatusResponseHolder response = httpClient.go(
+          new Request(
+              HttpMethod.GET,
+              new URL(StringUtils.format(
+                  "%s/druid/coordinator/v1/cluster",
+                  config.getRouterUrl()
+              ))
+          ),
+          StatusResponseHandler.getInstance()
+      ).get();
+
+      if (!response.getStatus().equals(HttpResponseStatus.OK)) {
+        throw new ISE(
+            "Error while fetching cluster nodes from[%s] status[%s] content[%s]",
+            config.getRouterUrl(),
+            response.getStatus(),
+            response.getContent()
+        );
+      }
+
+      return jsonMapper.readValue(
+          response.getContent(),
+          new TypeReference<Map<String, List<SimpleDruidNode>>>()
+          {
+          }
+      );
+    }
+    catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+  }
+
   private static String fillTemplate(IntegrationTestingConfig config, String template, String overlordLeader, String coordinatorLeader)
   {
     /*
@@ -325,5 +295,35 @@ public class ITHighAvailabilityTest
   private static String transformHost(String host)
   {
     return StringUtils.format("%s:", host);
+  }
+
+  /**
+   * Simpler version of {@link DruidNode} whose deserialization requires a whole bunch of Injections.
+   */
+  private static class SimpleDruidNode
+  {
+    private final String host;
+    private final String plaintextPort;
+
+    @JsonCreator
+    public SimpleDruidNode(
+        @JsonProperty("host") String host,
+        @JsonProperty("plaintextPort") String plainTextPort)
+    {
+      this.host = host;
+      this.plaintextPort = plainTextPort;
+    }
+
+    @JsonProperty
+    public String getHost()
+    {
+      return host;
+    }
+
+    @JsonProperty
+    public String getPlaintextPort()
+    {
+      return plaintextPort;
+    }
   }
 }
