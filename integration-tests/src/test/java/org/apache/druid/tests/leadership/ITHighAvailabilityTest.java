@@ -24,6 +24,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Inject;
+import org.apache.druid.cli.CliCustomNodeRole;
 import org.apache.druid.common.config.NullHandling;
 import org.apache.druid.discovery.NodeRole;
 import org.apache.druid.java.util.common.ISE;
@@ -108,6 +109,21 @@ public class ITHighAvailabilityTest
         TimeUnit.SECONDS.toMillis(5),
         60,
         "Standard services discovered"
+    );
+  }
+
+  @Test
+  public void testCustomDiscovery()
+  {
+    ITRetryUtil.retryUntil(
+        () -> {
+          int count = testSelfDiscovery(getClusterNodes(CliCustomNodeRole.SERVICE_NAME));
+          return count > 0;
+        },
+        true,
+        TimeUnit.SECONDS.toMillis(5),
+        60,
+        "Custom service discovered"
     );
   }
 
@@ -233,6 +249,42 @@ public class ITHighAvailabilityTest
       return jsonMapper.readValue(
           response.getContent(),
           new TypeReference<Map<String, List<SimpleDruidNode>>>()
+          {
+          }
+      );
+    }
+    catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  private List<SimpleDruidNode> getClusterNodes(String nodeRole)
+  {
+    try {
+      StatusResponseHolder response = httpClient.go(
+          new Request(
+              HttpMethod.GET,
+              new URL(StringUtils.format(
+                  "%s/druid/coordinator/v1/cluster/%s",
+                  config.getRouterUrl(),
+                  nodeRole
+              ))
+          ),
+          StatusResponseHandler.getInstance()
+      ).get();
+
+      if (!response.getStatus().equals(HttpResponseStatus.OK)) {
+        throw new ISE(
+            "Error while fetching cluster nodes from[%s] status[%s] content[%s]",
+            config.getRouterUrl(),
+            response.getStatus(),
+            response.getContent()
+        );
+      }
+
+      return jsonMapper.readValue(
+          response.getContent(),
+          new TypeReference<List<SimpleDruidNode>>()
           {
           }
       );
