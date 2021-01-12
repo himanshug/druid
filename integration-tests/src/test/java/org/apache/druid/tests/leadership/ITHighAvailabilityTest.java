@@ -36,6 +36,7 @@ import org.apache.druid.java.util.http.client.Request;
 import org.apache.druid.java.util.http.client.response.StatusResponseHandler;
 import org.apache.druid.java.util.http.client.response.StatusResponseHolder;
 import org.apache.druid.server.DruidNode;
+import org.apache.druid.server.http.ClusterResource;
 import org.apache.druid.testing.IntegrationTestingConfig;
 import org.apache.druid.testing.clients.CoordinatorResourceTestClient;
 import org.apache.druid.testing.guice.DruidTestModule;
@@ -45,6 +46,7 @@ import org.apache.druid.testing.utils.AbstractDruidClusterAdminClient;
 import org.apache.druid.testing.utils.ITRetryUtil;
 import org.apache.druid.testing.utils.SqlTestQueryHelper;
 import org.apache.druid.tests.TestNGGroup;
+import org.apache.druid.tests.indexer.AbstractIndexerTest;
 import org.jboss.netty.handler.codec.http.HttpMethod;
 import org.jboss.netty.handler.codec.http.HttpResponseStatus;
 import org.testng.Assert;
@@ -88,11 +90,55 @@ public class ITHighAvailabilityTest
   HttpClient httpClient;
 
   @Test
+  public void testLeadershipChanges() throws Exception
+  {
+    int runCount = 0;
+    String previousCoordinatorLeader = null;
+    String previousOverlordLeader = null;
+    // fetch current leaders, make sure queries work, then swap leaders and do it again
+    do {
+      LOG.info("%dth round of leader testing.", runCount);
+
+      String coordinatorLeader = getLeader("coordinator");
+      LOG.info("Coordinator Leader previous[%s], current[%s]", previousCoordinatorLeader, coordinatorLeader);
+
+      String overlordLeader = getLeader("indexer");
+      LOG.info("Overlord Leader previous[%s], current[%s]", previousOverlordLeader, overlordLeader);
+
+      // we expect leadership swap to happen
+      Assert.assertNotEquals(previousCoordinatorLeader, coordinatorLeader);
+      Assert.assertNotEquals(previousOverlordLeader, overlordLeader);
+
+      previousCoordinatorLeader = coordinatorLeader;
+      previousOverlordLeader = overlordLeader;
+
+      String queries = fillTemplate(
+          config,
+          AbstractIndexerTest.getResourceAsString(SYSTEM_QUERIES_RESOURCE),
+          overlordLeader,
+          coordinatorLeader
+      );
+
+      RetryUtils.retry(
+          () -> {
+            queryHelper.testQueriesFromString(queries);
+            return true;
+          },
+          (Throwable th) -> true,
+          10
+      );
+
+      swapLeadersAndWait(coordinatorLeader, overlordLeader);
+      LOG.info("Leaders swapped.");
+    } while (runCount++ < NUM_LEADERSHIP_SWAPS);
+  }
+
+  @Test
   public void testDiscoveryAndSelfDiscovery()
   {
     ITRetryUtil.retryUntil(
         () -> {
-          Map<String, List<SimpleDruidNode>> clusterNodes = getClusterNodes();
+          Map<String, List<ClusterResource.Node>> clusterNodes = getClusterNodes();
           if (clusterNodes.get(NodeRole.COORDINATOR.getJsonName()).size() < 2 ||
               clusterNodes.get(NodeRole.OVERLORD.getJsonName()).size() < 2 ||
               clusterNodes.get(NodeRole.BROKER.getJsonName()).size() < 1 ||
@@ -100,7 +146,7 @@ public class ITHighAvailabilityTest
             return false;
           }
 
-          List<SimpleDruidNode> allNodes = new ArrayList<>();
+          List<ClusterResource.Node> allNodes = new ArrayList<>();
           clusterNodes.values().forEach((nodes) -> allNodes.addAll(nodes));
 
           return allNodes.size() == testSelfDiscovery(allNodes);
@@ -115,6 +161,11 @@ public class ITHighAvailabilityTest
   @Test
   public void testCustomDiscovery()
   {
+    if (config.getDruidDeploymentEnvType() == DruidTestModule.DruidDeploymentEnvType.K8S) {
+      // Custom NodeRole is not deployed in k8s environment just yet
+      return;
+    }
+
     ITRetryUtil.retryUntil(
         () -> {
           int count = testSelfDiscovery(getClusterNodes(CliCustomNodeRole.SERVICE_NAME));
@@ -127,12 +178,12 @@ public class ITHighAvailabilityTest
     );
   }
 
-  private int testSelfDiscovery(Collection<SimpleDruidNode> nodes)
+  private int testSelfDiscovery(Collection<ClusterResource.Node> nodes)
       throws MalformedURLException, ExecutionException, InterruptedException
   {
     int count = 0;
 
-    for (SimpleDruidNode node : nodes) {
+    for (ClusterResource.Node node : nodes) {
       String host = config.getDruidDeploymentEnvType() == DruidTestModule.DruidDeploymentEnvType.UNKNOWN ?
                     node.getHost() : config.getDruidClusterHost();
 
@@ -223,7 +274,7 @@ public class ITHighAvailabilityTest
     }
   }
 
-  private Map<String, List<SimpleDruidNode>> getClusterNodes()
+  private Map<String, List<ClusterResource.Node>> getClusterNodes()
   {
     try {
       StatusResponseHolder response = httpClient.go(
@@ -248,7 +299,7 @@ public class ITHighAvailabilityTest
 
       return jsonMapper.readValue(
           response.getContent(),
-          new TypeReference<Map<String, List<SimpleDruidNode>>>()
+          new TypeReference<Map<String, List<ClusterResource.Node>>>()
           {
           }
       );
@@ -258,7 +309,7 @@ public class ITHighAvailabilityTest
     }
   }
 
-  private List<SimpleDruidNode> getClusterNodes(String nodeRole)
+  private List<ClusterResource.Node> getClusterNodes(String nodeRole)
   {
     try {
       StatusResponseHolder response = httpClient.go(
@@ -284,7 +335,7 @@ public class ITHighAvailabilityTest
 
       return jsonMapper.readValue(
           response.getContent(),
-          new TypeReference<List<SimpleDruidNode>>()
+          new TypeReference<List<ClusterResource.Node>>()
           {
           }
       );
@@ -347,35 +398,5 @@ public class ITHighAvailabilityTest
   private static String transformHost(String host)
   {
     return StringUtils.format("%s:", host);
-  }
-
-  /**
-   * Simpler version of {@link DruidNode} whose deserialization requires a whole bunch of Injections.
-   */
-  private static class SimpleDruidNode
-  {
-    private final String host;
-    private final String plaintextPort;
-
-    @JsonCreator
-    public SimpleDruidNode(
-        @JsonProperty("host") String host,
-        @JsonProperty("plaintextPort") String plainTextPort)
-    {
-      this.host = host;
-      this.plaintextPort = plainTextPort;
-    }
-
-    @JsonProperty
-    public String getHost()
-    {
-      return host;
-    }
-
-    @JsonProperty
-    public String getPlaintextPort()
-    {
-      return plaintextPort;
-    }
   }
 }

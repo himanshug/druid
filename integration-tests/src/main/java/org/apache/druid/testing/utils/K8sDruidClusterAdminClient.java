@@ -23,14 +23,17 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Inject;
 import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.apis.CoreV1Api;
+import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.util.Config;
 import org.apache.druid.java.util.common.RE;
+import org.apache.druid.java.util.common.RetryUtils;
 import org.apache.druid.java.util.common.logger.Logger;
 import org.apache.druid.java.util.http.client.HttpClient;
 import org.apache.druid.testing.IntegrationTestingConfig;
 import org.apache.druid.testing.guice.TestClient;
 
 import java.io.IOException;
+import java.net.HttpURLConnection;
 
 public class K8sDruidClusterAdminClient extends AbstractDruidClusterAdminClient
 {
@@ -117,7 +120,7 @@ public class K8sDruidClusterAdminClient extends AbstractDruidClusterAdminClient
   {
     // We only need to delete the pod, k8s StatefulSet controller will automatically recreate it.
     try {
-      k8sClient.deleteNamespacedPod(
+      V1Pod prevPod = k8sClient.deleteNamespacedPod(
           podName,
           NAMESPACE,
           null,
@@ -127,10 +130,42 @@ public class K8sDruidClusterAdminClient extends AbstractDruidClusterAdminClient
           null,
           null
       );
-      LOG.info("Deleted Pod [%s].", podName);
+
+      // Wait for previous pod to terminate and new pod to come up
+      RetryUtils.retry(
+          () -> {
+            V1Pod newPod = getPod(podName);
+            return newPod != null &&
+                   !newPod.getMetadata().getResourceVersion().equals(prevPod.getMetadata().getResourceVersion());
+          },
+          (Throwable th) -> true,
+          10
+      );
+
+      LOG.info("Restarted Pod [%s].", podName);
+    }
+    catch (Exception ex) {
+      throw new RE(ex, "Failed to delete pod [%s]", podName);
+    }
+  }
+
+  private V1Pod getPod(String podName)
+  {
+    try {
+      return k8sClient.readNamespacedPod(
+          podName,
+          NAMESPACE,
+          null,
+          null,
+          null
+      );
     }
     catch (ApiException ex) {
-      throw new RE(ex, "Failed to delete pod [%s]", podName);
+      if (ex.getCode() != HttpURLConnection.HTTP_NOT_FOUND) {
+        throw new RE(ex, "Failed to get pod [%s]", podName);
+      } else {
+        return null;
+      }
     }
   }
 }
