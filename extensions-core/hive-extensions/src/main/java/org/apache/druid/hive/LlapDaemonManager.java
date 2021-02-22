@@ -19,25 +19,25 @@
 
 package org.apache.druid.hive;
 
-import com.fasterxml.jackson.databind.Module;
-import com.google.inject.Binder;
-import org.apache.druid.guice.LifecycleModule;
-import org.apache.druid.initialization.DruidModule;
+import org.apache.druid.guice.ManageLifecycle;
+import org.apache.druid.java.util.common.lifecycle.LifecycleStart;
+import org.apache.druid.java.util.common.lifecycle.LifecycleStop;
+import org.apache.druid.java.util.common.logger.Logger;
 
-import java.util.Collections;
-import java.util.List;
-
-public class HiveModule implements DruidModule
+@ManageLifecycle
+public class LlapDaemonManager
 {
-  @Override
-  public List<? extends Module> getJacksonModules()
+  private static final Logger LOGGER = new Logger(LlapDaemonManager.class);
+
+  @LifecycleStart
+  public void start()
   {
-    return Collections.emptyList();
+    LOGGER.info("Starting........");
   }
 
-  @Override
-  public void configure(Binder binder)
+  @LifecycleStop
+  public void stop()
   {
-    LifecycleModule.register(binder, LlapDaemonManager.class);
+    LOGGER.info("Stopping.......");
   }
 }

@@ -206,6 +206,8 @@
                                         <argument>-c</argument>
                                         <argument>org.apache.druid.extensions:druid-histogram</argument>
                                         <argument>-c</argument>
+                                        <argument>org.apache.druid.extensions:druid-hive-extensions</argument>
+                                        <argument>-c</argument>
                                         <argument>org.apache.druid.extensions:druid-kafka-extraction-namespace</argument>
                                         <argument>-c</argument>
                                         <argument>org.apache.druid.extensions:druid-kafka-indexing-service</argument>
