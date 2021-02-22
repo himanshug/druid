@@ -156,6 +156,7 @@
         <module>extensions-core/druid-pac4j</module>
         <module>extensions-core/hdfs-storage</module>
         <module>extensions-core/histogram</module>
+        <module>extensions-core/hive-extensions</module>
         <module>extensions-core/stats</module>
         <module>extensions-core/kafka-extraction-namespace</module>
         <module>extensions-core/kafka-indexing-service</module>
