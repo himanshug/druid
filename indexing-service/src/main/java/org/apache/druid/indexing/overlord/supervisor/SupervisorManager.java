@@ -19,9 +19,9 @@
 
 package org.apache.druid.indexing.overlord.supervisor;
 
+import com.google.inject.Inject;
 import org.apache.druid.com.google.common.base.Optional;
 import org.apache.druid.com.google.common.base.Preconditions;
-import com.google.inject.Inject;
 import org.apache.druid.indexing.overlord.DataSourceMetadata;
 import org.apache.druid.java.util.common.Pair;
 import org.apache.druid.java.util.common.lifecycle.LifecycleStart;

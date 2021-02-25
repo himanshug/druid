@@ -19,13 +19,6 @@
 
 package org.apache.druid.sql.calcite.rel;
 
-import org.apache.druid.com.google.common.base.Preconditions;
-import org.apache.druid.com.google.common.collect.ImmutableList;
-import org.apache.druid.com.google.common.collect.ImmutableSortedMap;
-import org.apache.druid.com.google.common.collect.Iterables;
-import org.apache.druid.com.google.common.collect.Iterators;
-import org.apache.druid.com.google.common.collect.Ordering;
-import org.apache.druid.com.google.common.primitives.Ints;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 import org.apache.calcite.rel.RelFieldCollation;
@@ -41,6 +34,13 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.druid.com.google.common.base.Preconditions;
+import org.apache.druid.com.google.common.collect.ImmutableList;
+import org.apache.druid.com.google.common.collect.ImmutableSortedMap;
+import org.apache.druid.com.google.common.collect.Iterables;
+import org.apache.druid.com.google.common.collect.Iterators;
+import org.apache.druid.com.google.common.collect.Ordering;
+import org.apache.druid.com.google.common.primitives.Ints;
 import org.apache.druid.java.util.common.ISE;
 import org.apache.druid.java.util.common.granularity.Granularities;
 import org.apache.druid.java.util.common.granularity.Granularity;
