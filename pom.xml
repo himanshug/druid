@@ -135,7 +135,6 @@
         <module>indexing-service</module>
         <module>processing</module>
         <module>server</module>
-        <module>shaded-guava</module>
         <module>sql</module>
         <module>services</module>
         <module>integration-tests</module>
