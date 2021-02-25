@@ -22,7 +22,7 @@ package org.apache.druid.inputsource.hdfs;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.InjectableValues;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.Iterables;
+import org.apache.druid.com.google.common.collect.Iterables;
 import org.apache.druid.data.input.InputFormat;
 import org.apache.druid.data.input.InputRow;
 import org.apache.druid.data.input.InputRowSchema;

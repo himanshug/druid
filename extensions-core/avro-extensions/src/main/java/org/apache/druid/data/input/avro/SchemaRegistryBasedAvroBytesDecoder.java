@@ -21,7 +21,7 @@ package org.apache.druid.data.input.avro;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.annotations.VisibleForTesting;
+import org.apache.druid.com.google.common.annotations.VisibleForTesting;
 import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import org.apache.avro.Schema;

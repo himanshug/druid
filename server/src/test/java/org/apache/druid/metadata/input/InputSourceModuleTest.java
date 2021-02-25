@@ -25,7 +25,7 @@ import com.fasterxml.jackson.databind.cfg.MapperConfig;
 import com.fasterxml.jackson.databind.introspect.AnnotatedClass;
 import com.fasterxml.jackson.databind.introspect.AnnotatedClassResolver;
 import com.fasterxml.jackson.databind.jsontype.NamedType;
-import com.google.common.collect.Iterables;
+import org.apache.druid.com.google.common.collect.Iterables;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;

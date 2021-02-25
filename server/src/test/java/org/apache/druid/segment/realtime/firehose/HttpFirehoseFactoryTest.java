@@ -20,7 +20,7 @@
 package org.apache.druid.segment.realtime.firehose;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.ImmutableList;
+import org.apache.druid.com.google.common.collect.ImmutableList;
 import org.apache.druid.jackson.DefaultObjectMapper;
 import org.apache.druid.metadata.DefaultPasswordProvider;
 import org.junit.Assert;
