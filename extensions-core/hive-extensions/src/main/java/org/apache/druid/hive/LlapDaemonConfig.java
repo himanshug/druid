@@ -38,6 +38,9 @@ public class LlapDaemonConfig
   {
     HiveConf conf = new HiveConf();
 
+    // To fix Class org.apache.hadoop.net.StandardSocketFactory not found
+    conf.setClassLoader(getClass().getClassLoader());
+
     conf.set(HiveConf.ConfVars.LLAP_DAEMON_SERVICE_HOSTS.varname, "@" + getLlapClusterName());
     conf.set(HiveConf.ConfVars.HIVE_ZOOKEEPER_QUORUM.varname, "localhost");
     conf.setInt(HiveConf.ConfVars.HIVE_ZOOKEEPER_CLIENT_PORT.varname, 2181);
