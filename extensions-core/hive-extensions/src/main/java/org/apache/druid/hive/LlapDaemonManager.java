@@ -88,9 +88,15 @@ public class LlapDaemonManager
   public void start()
   {
     LOGGER.info("Starting........");
-
-    llapDaemon.init(new Configuration(llapDaemonConfig.getHiveConf()));
-    llapDaemon.start();
+    ClassLoader currCtxCl = Thread.currentThread().getContextClassLoader();
+    try {
+      Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
+      llapDaemon.init(new Configuration(llapDaemonConfig.getHiveConf()));
+      llapDaemon.start();
+    }
+    finally {
+      Thread.currentThread().setContextClassLoader(currCtxCl);
+    }
     
     LOGGER.info("Started.");
 
