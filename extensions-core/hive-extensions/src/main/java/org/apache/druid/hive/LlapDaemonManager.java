@@ -43,45 +43,52 @@ public class LlapDaemonManager
   @Inject
   private LlapDaemonManager(LlapDaemonConfig llapDaemonConfig)
   {
+    ClassLoader currCtxCl = Thread.currentThread().getContextClassLoader();
+    try {
+      Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
 
-    this.llapDaemonConfig = llapDaemonConfig;
+      this.llapDaemonConfig = llapDaemonConfig;
 
-    LlapDaemonInfo.initialize(
-        llapDaemonConfig.getLlapClusterName(),
-        llapDaemonConfig.getNumExecutors(),
-        llapDaemonConfig.getExecBytes(),
-        llapDaemonConfig.getIoBytes(),
-        llapDaemonConfig.isLlapIODirect(),
-        llapDaemonConfig.isLlapIOEnabled(),
-        "-1"
-    );
+      LlapDaemonInfo.initialize(
+          llapDaemonConfig.getLlapClusterName(),
+          llapDaemonConfig.getNumExecutors(),
+          llapDaemonConfig.getExecBytes(),
+          llapDaemonConfig.getIoBytes(),
+          llapDaemonConfig.isLlapIODirect(),
+          llapDaemonConfig.isLlapIOEnabled(),
+          "-1"
+      );
 
-    HiveConf conf = llapDaemonConfig.getHiveConf();
+      HiveConf conf = llapDaemonConfig.getHiveConf();
 
-    int rpcPort = HiveConf.getIntVar(conf, HiveConf.ConfVars.LLAP_DAEMON_RPC_PORT);
-    int mngPort = HiveConf.getIntVar(conf, HiveConf.ConfVars.LLAP_MANAGEMENT_RPC_PORT);
-    int shufflePort = conf.getInt(ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY, ShuffleHandler.DEFAULT_SHUFFLE_PORT);
-    int webPort = HiveConf.getIntVar(conf, HiveConf.ConfVars.LLAP_DAEMON_WEB_PORT);
+      int rpcPort = HiveConf.getIntVar(conf, HiveConf.ConfVars.LLAP_DAEMON_RPC_PORT);
+      int mngPort = HiveConf.getIntVar(conf, HiveConf.ConfVars.LLAP_MANAGEMENT_RPC_PORT);
+      int shufflePort = conf.getInt(ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY, ShuffleHandler.DEFAULT_SHUFFLE_PORT);
+      int webPort = HiveConf.getIntVar(conf, HiveConf.ConfVars.LLAP_DAEMON_WEB_PORT);
 
-    // TODO: do we need to clean it up every time we are restarted?
-    File localDir = new File(llapDaemonConfig.getWorkDir(), "llap");
+      // TODO: do we need to clean it up every time we are restarted?
+      File localDir = new File(llapDaemonConfig.getWorkDir(), "llap");
 
-    llapDaemon = new LlapDaemon(
-        conf,
-        llapDaemonConfig.getNumExecutors(),
-        llapDaemonConfig.getExecBytes(),
-        llapDaemonConfig.isLlapIOEnabled(),
-        llapDaemonConfig.isLlapIODirect(),
-        llapDaemonConfig.getIoBytes(),
-        new String[]{localDir.getAbsolutePath()},
-        rpcPort,
-        false,
-        -1,
-        mngPort,
-        shufflePort,
-        webPort,
-        llapDaemonConfig.getLlapClusterName()
-    );
+      llapDaemon = new LlapDaemon(
+          conf,
+          llapDaemonConfig.getNumExecutors(),
+          llapDaemonConfig.getExecBytes(),
+          llapDaemonConfig.isLlapIOEnabled(),
+          llapDaemonConfig.isLlapIODirect(),
+          llapDaemonConfig.getIoBytes(),
+          new String[]{localDir.getAbsolutePath()},
+          rpcPort,
+          false,
+          -1,
+          mngPort,
+          shufflePort,
+          webPort,
+          llapDaemonConfig.getLlapClusterName()
+      );
+    }
+    finally {
+      Thread.currentThread().setContextClassLoader(currCtxCl);
+    }
   }
   
   @LifecycleStart
