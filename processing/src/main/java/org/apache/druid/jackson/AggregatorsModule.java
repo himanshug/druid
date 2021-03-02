@@ -50,9 +50,6 @@ import org.apache.druid.query.aggregation.first.LongFirstAggregatorFactory;
 import org.apache.druid.query.aggregation.first.StringFirstAggregatorFactory;
 import org.apache.druid.query.aggregation.first.StringFirstFoldingAggregatorFactory;
 import org.apache.druid.query.aggregation.hyperloglog.HyperUniqueFinalizingPostAggregator;
-import org.apache.druid.query.aggregation.hyperloglog.HyperUniquesAggregatorFactory;
-import org.apache.druid.query.aggregation.hyperloglog.HyperUniquesSerde;
-import org.apache.druid.query.aggregation.hyperloglog.PreComputedHyperUniquesSerde;
 import org.apache.druid.query.aggregation.last.DoubleLastAggregatorFactory;
 import org.apache.druid.query.aggregation.last.FloatLastAggregatorFactory;
 import org.apache.druid.query.aggregation.last.LongLastAggregatorFactory;
@@ -78,8 +75,6 @@ public class AggregatorsModule extends SimpleModule
   {
     super("AggregatorFactories");
 
-    ComplexMetrics.registerSerde("hyperUnique", new HyperUniquesSerde());
-    ComplexMetrics.registerSerde("preComputedHyperUnique", new PreComputedHyperUniquesSerde());
     ComplexMetrics.registerSerde("serializablePairLongString", new SerializablePairLongStringSerde());
 
     setMixInAnnotation(AggregatorFactory.class, AggregatorFactoryMixin.class);
@@ -102,7 +97,6 @@ public class AggregatorsModule extends SimpleModule
       @JsonSubTypes.Type(name = "longMin", value = LongMinAggregatorFactory.class),
       @JsonSubTypes.Type(name = "javascript", value = JavaScriptAggregatorFactory.class),
       @JsonSubTypes.Type(name = "histogram", value = HistogramAggregatorFactory.class),
-      @JsonSubTypes.Type(name = "hyperUnique", value = HyperUniquesAggregatorFactory.class),
       @JsonSubTypes.Type(name = "cardinality", value = CardinalityAggregatorFactory.class),
       @JsonSubTypes.Type(name = "filtered", value = FilteredAggregatorFactory.class),
       @JsonSubTypes.Type(name = "longFirst", value = LongFirstAggregatorFactory.class),
